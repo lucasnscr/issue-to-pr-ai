@@ -101,6 +101,14 @@ test('editing or deleting a decision, or revoking actor permission, invalidates 
   }
 });
 
+test('deleting the latest confirmation cannot resurrect an older dismissal', async () => {
+  const s = fixture(); s.review(); s.command(); await s.assess();
+  const confirmed = s.command('confirm'); await s.assess();
+  s.comments.get(3).splice(s.comments.get(3).indexOf(confirmed), 1);
+  assert.equal((await s.assess()).conclusion, 'action_required');
+  s.command(); assert.equal((await s.assess()).conclusion, 'success');
+});
+
 test('receipts require the original source hash, actor and trusted worker provenance', async () => {
   const s = fixture(); s.review(); s.command(); await s.assess();
   const receipt = s.comments.get(3).find(c => c.body.startsWith(triage.MARKER));

@@ -85,7 +85,11 @@ async function reconcileDecisions({ github, repo, pr, comments, envelope, record
     if (receipt.sha !== pr.head.sha || receipt.reviewRunId !== envelope.runId) continue;
     const source = sources.find(c => c.id === receipt.sourceCommentId);
     if (!source || source.user.login !== receipt.actor || triage.hash(source.body) !== receipt.sourceHash || source.created_at !== source.updated_at ||
-        !access(await permission(github, repo, receipt.actor, cache))) continue;
+        !access(await permission(github, repo, receipt.actor, cache))) {
+      // Invalidating a newer decision must not resurrect an older dismissal.
+      decisions.set(receipt.target, { action: 'invalidated' });
+      continue;
+    }
     const command = triage.parseCommand(source.body);
     if (!command || !validTarget(command, source) || ['sha', 'reviewRunId', 'target', 'action', 'reason'].some(key => command[key] !== receipt[key])) continue;
     if (receipt.workerRunId !== context.runId) await trustedRun(github, repo, receipt.workerRunId, receipt.workerRunAttempt, workerPath, defaultBranch);
