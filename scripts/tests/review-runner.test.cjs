@@ -29,9 +29,9 @@ test('tool-denied reviewer receives the complete patch as data without an implic
         assert(args[1].includes('<untrusted_patch>'));
         assert.equal(args[args.indexOf('--agent') + 1], 'reviewer');
         assert.equal(options.profile, 'review');
-        return { status: 0, stdout: JSON.stringify({ type: 'text', part: { text: 'Nenhum defeito encontrado.' } }) };
+        return { status: 0, stdout: JSON.stringify({ type: 'text', part: { text: JSON.stringify({ summary: 'Nenhum defeito encontrado.', findings: [] }) } }) };
       } });
-    assert.equal(review, 'Nenhum defeito encontrado.');
+    assert.match(review, /Nenhum defeito encontrado/);
   });
 });
 test('missing or oversized context fails before any inference', async () => {
@@ -70,10 +70,10 @@ test('prepared frontend-sized context reaches the tool-denied runner without tru
         run: async args => {
           assert(args[1].includes(patch));
           assert.equal(args[args.indexOf('--agent') + 1], 'reviewer');
-          return { status: 0, stdout: JSON.stringify({ type: 'text', part: { text: 'Contexto completo recebido.' } }) };
+          return { status: 0, stdout: JSON.stringify({ type: 'text', part: { text: JSON.stringify({ summary: 'Contexto completo recebido.', findings: [] }) } }) };
         },
       });
-      assert.equal(review, 'Contexto completo recebido.');
+      assert.match(review, /Contexto completo recebido/);
     } finally {
       if (previous === undefined) delete process.env.RUNNER_TEMP;
       else process.env.RUNNER_TEMP = previous;
@@ -88,7 +88,7 @@ test('runner accepts its exact shared byte limit and rejects oversized UTF-8 bef
     const options = { env: { MODEL: 'anthropic/claude-sonnet-4-6', REVIEW_DIRECTORY: directory },
       run: async () => {
         calls++;
-        return { status: 0, stdout: JSON.stringify({ type: 'text', part: { text: 'Revisado.' } }) };
+        return { status: 0, stdout: JSON.stringify({ type: 'text', part: { text: JSON.stringify({ summary: 'Revisado.', findings: [] }) } }) };
       } };
     fs.writeFileSync(path.join(directory, 'context.txt'), 'x'.repeat(limits.maxContextBytes));
     await runReview(options);

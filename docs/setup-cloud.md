@@ -10,6 +10,8 @@ Os workflows devem estar na branch padrão. Configure os Repository secrets na i
 | Variable | `AI_ENABLED` | `true` habilita comandos autorizados |
 | Variable | `CLAUDE_ENABLED` | `true` habilita também `@claude` |
 | Variable | `AI_REVIEW_ENABLED` | `true` habilita revisão consultiva |
+| Variable | `AI_LOOP_ENABLED` | `true` habilita correção limitada nas PRs com `ai:autofix` |
+| Variable | `CORRECTION_MODEL` | Opcional; padrão `anthropic/claude-sonnet-4-6`, via OpenCode |
 | Variable | `OPENCODE_MODEL` | `anthropic/claude-sonnet-4-6` |
 | Variable | `CLAUDE_MODEL` | `anthropic/claude-sonnet-4-6` |
 | Variable | `REVIEW_MODEL` | `anthropic/claude-sonnet-4-6` |
@@ -38,7 +40,9 @@ Comentários em PRs não iniciam implementação. Use uma nova issue para cada t
 
 Os limites e a telemetria ficam em [governança](governance.md). O artefato contém resumo, consumo estimado,
 patch candidato e relatórios. A versão validada contém também `implementation.patch`.
-Falhas de teste bloqueiam a publicação. Não existe correção automática por comentários de revisão.
+Falhas de teste bloqueiam a publicação. O [engineering loop](engineering-loop.md) é opcional:
+com a variável e a label de autorização, achados estruturados podem gerar até duas correções
+na mesma PR, seguidas de nova CI e revisão. Texto livre em comentários não inicia esse ciclo.
 
 ## Revisão real
 
@@ -49,12 +53,18 @@ O publisher também pode solicitar revisão da draft por dispatch autorizado na 
 gh workflow run ai-review.yml --ref main -f pull_request=NUMERO
 ```
 
-O modelo recebe apenas o patch completo, com ferramentas negadas. Não executa o código da PR.
+O modelo recebe o patch completo e trechos limitados da base confiável, com ferramentas
+negadas. Não executa o código da PR.
 A publicação verifica novamente o SHA e atualiza seu comentário para evitar duplicação.
 Um commit que já possui revisão do bot não inicia outra inferência, inclusive ao sair de draft.
 Patches binários, incompletos ou acima de 96 mil bytes exigem revisão humana. O contexto completo,
 incluindo trechos da base, é limitado a 112 mil bytes; o patch nunca é truncado para caber.
 O comentário da IA é consultivo e não representa aprovação.
+
+O ciclo opcional pode registrar `needs-human` em um workflow tecnicamente verde. Confira o
+comentário de acompanhamento, a CI do SHA atual e a triagem antes de integrar a PR.
+O [modelo de trabalho](modelo-de-trabalho.md) define esses critérios; o
+[teste real](validacao-engineering-loop.md) registra duas correções e a parada no limite.
 
 ## Inferência privada
 
@@ -75,5 +85,5 @@ Mantenha-o desativado para a demonstração atual. O fluxo por comentário funci
 
 ## Desativar chamadas
 
-Defina `AI_ENABLED=false`, `AI_REVIEW_ENABLED=false`, `CLAUDE_ENABLED=false` e `AI_LIVE_TEST_ENABLED=false`.
+Defina `AI_ENABLED=false`, `AI_REVIEW_ENABLED=false`, `AI_LOOP_ENABLED=false`, `CLAUDE_ENABLED=false` e `AI_LIVE_TEST_ENABLED=false`.
 Execuções já iniciadas precisam ser canceladas na aba Actions. Rotacione credenciais expostas no provedor e atualize o secret.

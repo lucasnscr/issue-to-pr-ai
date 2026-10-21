@@ -14,6 +14,11 @@ O deck mostra casos de uso em engenharia, a alternativa Cursor e os resultados r
 `@claude`, revisão consultiva e Kubernetes. A revisão por IA levantou hipóteses que exigiram
 checagem do código/testes, e essa limitação aparece no desenho do piloto.
 
+O deck conserva o recorte das execuções usadas em sua geração. Para explicar o ciclo opcional
+de correção acrescentado depois, use a [arquitetura atual](../architecture.md), o
+[relatório da PR #32](../validacao-engineering-loop.md) e o [roteiro de demonstração](../demo.md).
+Esses documentos registram duas correções e a parada para triagem; os slides não foram regenerados nesta atualização de documentação.
+
 ## Atualização das evidências
 
 `evidence.json` distingue o teste histórico de categoria das novas execuções. Atualize o estado e os links

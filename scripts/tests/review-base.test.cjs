@@ -41,3 +41,22 @@ test('base context respects its byte budget and skips newly added files absent f
     assert.equal(excerpts([{ filename: 'apps/catalog-api/src/main/java/New.java' }], { root }), '');
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('product service and new HTTP test diffs include the unchanged entity normalizer from the trusted base', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'review-product-context-'));
+  const base = 'apps/catalog-api/src/main/java/dev/continuousai/catalog/product/';
+  const entity = base + 'Product.java';
+  const request = base + 'ProductRequest.java';
+  try {
+    fs.mkdirSync(path.dirname(path.join(root, entity)), { recursive: true });
+    fs.writeFileSync(path.join(root, entity), 'class Product { void update(Request value) { category = value.category().trim().toLowerCase(Locale.ROOT); } }');
+    fs.writeFileSync(path.join(root, request), 'record ProductRequest(@NotBlank String category) {}');
+    const text = excerpts([{ filename: base + 'ProductService.java' },
+      { filename: 'apps/catalog-api/src/test/java/dev/continuousai/catalog/product/NewProductIT.java' }], { root });
+    assert(text.includes(`TRUSTED BASE EXCERPT: ${entity}`));
+    assert(text.includes('trim().toLowerCase(Locale.ROOT)'));
+    assert(text.includes('@NotBlank String category'));
+    assert.equal(text.split(`TRUSTED BASE EXCERPT: ${entity}`).length, 2);
+    assert.equal(excerpts([{ filename: base + 'ProductService.java' }], { root, budget: 20 }), '');
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

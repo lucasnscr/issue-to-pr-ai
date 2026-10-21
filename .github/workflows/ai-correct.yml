@@ -1,0 +1,262 @@
+name: AI engineering loop
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Same-repository PR opted in with ai:autofix
+        required: true
+        type: string
+      review_run_id:
+        description: Trusted AI review execution from the default branch
+        required: true
+        type: string
+      head_sha:
+        description: Exact PR commit reviewed by that execution
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: ai-engineering-${{ inputs.pull_request }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: >-
+      vars.AI_ENABLED == 'true' && vars.AI_REVIEW_ENABLED == 'true' && vars.AI_LOOP_ENABLED == 'true' &&
+      github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+      issues: write
+    outputs:
+      ready: ${{ steps.plan.outputs.ready }}
+      number: ${{ steps.plan.outputs.number }}
+      sha: ${{ steps.plan.outputs.sha }}
+      base_sha: ${{ steps.plan.outputs.base_sha }}
+      branch: ${{ steps.plan.outputs.branch }}
+      attempt: ${{ steps.plan.outputs.attempt }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: plan
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const { prepare } = require('./.github/scripts/engineering-loop.cjs');
+            await prepare({ github, context, core });
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: steps.plan.outputs.ready == 'true'
+        with:
+          name: correction-plan-${{ github.run_id }}
+          path: ${{ steps.plan.outputs.directory }}/plan.json
+          retention-days: 14
+  correct:
+    needs: prepare
+    if: needs.prepare.outputs.ready == 'true' && vars.AI_LOOP_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    env:
+      MODEL: ${{ vars.CORRECTION_MODEL || 'anthropic/claude-sonnet-4-6' }}
+    outputs:
+      estimated_cost: ${{ steps.usage.outputs.estimated_cost }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: correction-plan-${{ github.run_id }}
+          path: plan
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install pinned OpenCode
+        run: npm install --global opencode-ai@1.19.3
+      - name: Recheck opt-in and current SHA before releasing a provider credential
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          PR_NUMBER: ${{ needs.prepare.outputs.number }}
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
+          EXPECTED_BASE: ${{ needs.prepare.outputs.base_sha }}
+          EXPECTED_BRANCH: ${{ needs.prepare.outputs.branch }}
+        with:
+          script: |
+            const { currentPr } = require('./trusted/.github/scripts/engineering-loop.cjs');
+            await currentPr({ github, repo: context.repo,
+              plan: { pr: Number(process.env.PR_NUMBER), sha: process.env.EXPECTED_SHA,
+                baseSha: process.env.EXPECTED_BASE, branch: process.env.EXPECTED_BRANCH },
+              defaultBranch: context.payload.repository.default_branch });
+      - name: Propose a correction without commands or GitHub credentials
+        id: agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VLLM_BASE_URL: ${{ vars.VLLM_BASE_URL }}
+          VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+          CORRECTION_PLAN: ${{ github.workspace }}/plan/plan.json
+          CANDIDATE_DIRECTORY: ${{ github.workspace }}/candidate
+          CORRECTION_USAGE_FILE: ${{ github.workspace }}/artifacts/ai-usage.json
+          CORRECTION_SUMMARY_FILE: ${{ github.workspace }}/artifacts/correction-summary.md
+        run: node trusted/scripts/run-correction.mjs
+      - name: Capture trusted usage before executing candidate code
+        id: usage
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import { existsSync, readFileSync, appendFileSync } from 'node:fs';
+          if (existsSync('artifacts/ai-usage.json')) {
+            const record = JSON.parse(readFileSync('artifacts/ai-usage.json', 'utf8'));
+            const cost = record.usage?.estimatedCostUsd;
+            if (Number.isFinite(cost) && cost >= 0 && cost <= 3) {
+              appendFileSync(process.env.GITHUB_OUTPUT, `estimated_cost=${cost}\n`);
+            }
+          }
+          NODE
+      - name: Check correction scope before executing tests
+        working-directory: candidate
+        env:
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
+        run: node "$GITHUB_WORKSPACE/trusted/scripts/validate-correction.mjs"
+      - name: Unit and real PostgreSQL integration tests
+        working-directory: candidate
+        run: ./mvnw -B -ntp verify
+      - name: Full application Docker and independent HTTP acceptance
+        working-directory: candidate
+        run: |
+          trap 'docker compose logs --no-color; docker compose down -v' EXIT
+          docker build -t catalog-api:0.1.0 .
+          docker compose up --no-build -d
+          node "$GITHUB_WORKSPACE/trusted/scripts/smoke.mjs"
+          node "$GITHUB_WORKSPACE/trusted/scripts/category-acceptance.mjs"
+          node "$GITHUB_WORKSPACE/trusted/scripts/price-acceptance.mjs"
+          node "$GITHUB_WORKSPACE/trusted/scripts/ordering-acceptance.mjs"
+      - name: Package the validated patch
+        working-directory: candidate
+        env:
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          node "$GITHUB_WORKSPACE/trusted/scripts/validate-correction.mjs"
+          git diff --exit-code
+          git diff --cached --binary > "$GITHUB_WORKSPACE/artifacts/correction.patch"
+          test -s "$GITHUB_WORKSPACE/artifacts/correction.patch"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: correction-result-${{ github.run_id }}
+          path: |
+            artifacts/
+            candidate/apps/catalog-api/target/surefire-reports/
+            candidate/apps/catalog-api/target/failsafe-reports/
+          retention-days: 14
+  publish:
+    needs: [prepare, correct]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: write
+      pull-requests: read
+      issues: read
+    outputs:
+      sha: ${{ steps.push.outputs.sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: correction-result-${{ github.run_id }}
+          path: result
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          path: candidate
+          persist-credentials: false
+      - name: Independently validate the patch on a fresh runner
+        working-directory: candidate
+        env:
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          git apply --check "$GITHUB_WORKSPACE/result/artifacts/correction.patch"
+          git apply --index "$GITHUB_WORKSPACE/result/artifacts/correction.patch"
+          node "$GITHUB_WORKSPACE/trusted/scripts/validate-correction.mjs"
+      - name: Recheck current authorization, head, and base before publication
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          PR_NUMBER: ${{ needs.prepare.outputs.number }}
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
+          EXPECTED_BASE: ${{ needs.prepare.outputs.base_sha }}
+          EXPECTED_BRANCH: ${{ needs.prepare.outputs.branch }}
+        with:
+          script: |
+            const loop = require('./trusted/.github/scripts/engineering-loop.cjs');
+            const plan = { pr: Number(process.env.PR_NUMBER), sha: process.env.EXPECTED_SHA,
+              baseSha: process.env.EXPECTED_BASE, branch: process.env.EXPECTED_BRANCH };
+            const pr = await loop.currentPr({ github, repo: context.repo, plan,
+              defaultBranch: context.payload.repository.default_branch });
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              ...context.repo, pull_number: plan.pr, per_page: 100 });
+            loop.assertScope(pr, files);
+      - name: Push to the same PR branch and request a new CI and review
+        id: push
+        working-directory: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.prepare.outputs.branch }}
+          ATTEMPT: ${{ needs.prepare.outputs.attempt }}
+          PR_NUMBER: ${{ needs.prepare.outputs.number }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          git commit -m "fix: address AI review findings (attempt $ATTEMPT)"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          gh workflow run ci.yml --ref "$BRANCH"
+          gh workflow run ai-review.yml --ref "$DEFAULT_BRANCH" -f pull_request="$PR_NUMBER"
+  report:
+    needs: [prepare, correct, publish]
+    if: always() && needs.prepare.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          PR_NUMBER: ${{ needs.prepare.outputs.number }}
+          PUBLISH_OUTCOME: ${{ needs.publish.result }}
+          PUBLISHED_SHA: ${{ needs.publish.outputs.sha }}
+          ESTIMATED_COST_USD: ${{ needs.correct.outputs.estimated_cost }}
+        with:
+          script: |
+            const { finish } = require('./.github/scripts/engineering-loop.cjs');
+            await finish({ github, context, core });

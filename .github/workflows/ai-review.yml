@@ -16,18 +16,38 @@ concurrency:
   # The publisher discards results whose PR SHA has changed.
   cancel-in-progress: false
 jobs:
+  route-loop:
+    if: >-
+      vars.AI_ENABLED == 'true' && vars.AI_REVIEW_ENABLED == 'true' && vars.AI_LOOP_ENABLED == 'true' &&
+      github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ai:ready') &&
+      contains(github.event.pull_request.labels.*.name, 'ai:autofix')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+    steps:
+      - name: Route opted-in PR events to the trusted default-branch reviewer
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo,
+              workflow_id: 'ai-review.yml', ref: context.payload.repository.default_branch,
+              inputs: { pull_request: String(context.payload.pull_request.number) } });
   review:
     if: >-
       vars.AI_ENABLED == 'true' && vars.AI_REVIEW_ENABLED == 'true' &&
       ((github.event_name == 'workflow_dispatch' && github.ref_name == github.event.repository.default_branch) ||
        (github.event.pull_request.head.repo.full_name == github.repository &&
-        github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ai:ready')))
+        github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ai:ready') &&
+        !(vars.AI_LOOP_ENABLED == 'true' && contains(github.event.pull_request.labels.*.name, 'ai:autofix'))))
     runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: write
       issues: write
+      actions: write
     env:
       MODEL: ${{ vars.REVIEW_MODEL || 'anthropic/claude-sonnet-4-6' }}
     steps:
@@ -96,3 +116,17 @@ jobs:
           name: ai-review-${{ github.event.pull_request.number || inputs.pull_request }}-${{ github.run_attempt }}
           path: artifacts/
           retention-days: 14
+      - name: Continue the opted-in engineering loop
+        if: >-
+          always() && vars.AI_LOOP_ENABLED == 'true' &&
+          github.event_name == 'workflow_dispatch' && github.ref_name == github.event.repository.default_branch &&
+          (steps.patch.outcome == 'failure' || steps.agent.outcome == 'failure' || steps.agent.outcome == 'success' ||
+           steps.patch.outputs.existing_review_run_id != '')
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          REVIEW_SHA: ${{ steps.patch.outputs.sha }}
+          REVIEW_RUN_ID: ${{ steps.patch.outputs.existing_review_run_id }}
+        with:
+          script: |
+            const { dispatch } = require('./.github/scripts/engineering-loop.cjs');
+            await dispatch({ github, context, core });

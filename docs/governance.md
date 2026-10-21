@@ -9,17 +9,18 @@ arquitetura aprovada por uma organização nem uma integração com controles co
 por perfil. `implementation` permite 35 etapas, 15 minutos, estimativa de USD 5 e
 1,5 milhão de unidades conservadoras de tokens. `review` permite uma etapa, nove
 minutos, estimativa de USD 1 e 80 mil unidades. Os valores são parâmetros do
-laboratório, não uma recomendação de orçamento corporativo.
+laboratório, não uma recomendação de orçamento corporativo. O perfil `correction` permite
+20 etapas, dez minutos, estimativa de USD 3 e 750 mil unidades, dentro do ciclo opcional descrito abaixo.
 
 O fluxo controlado de implementação (`/oc` e `@claude`) executa
 `scripts/run-implementation.mjs`, selecionando o CLI com `IMPLEMENTATION_AGENT`.
-O caminho OpenCode e `scripts/run-review.mjs` usam
+O caminho OpenCode, `scripts/run-review.mjs` e `scripts/run-correction.mjs` usam
 `scripts/run-governed-opencode.mjs`. O wrapper valida o modelo antes de iniciar o
 processo, acompanha eventos JSON, encerra o grupo de processos ao exceder o tempo
 ou um limite observado e bloqueia uma conclusão sem telemetria completa. Não há
 publicação de código ou comentário após essa falha.
 
-O número de etapas também é limitado em `opencode.json`. A política observa
+Na implementação inicial, o número de etapas também é limitado em `opencode.json`. A política observa
 `step_start` e `step_finish` e bloqueia quando o limite é ultrapassado. Ao alterar
 limites, mantenha o arquivo do agente e os timeouts dos jobs compatíveis.
 
@@ -29,6 +30,9 @@ agente revisor não define `steps` na CLI, mantém todas as ferramentas negadas 
 o supervisor externo limita a execução a uma etapa. A validação de configuração
 preserva esse contrato. Fontes: [código da versão fixada](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/opencode/src/session/prompt.ts)
 e [restrição de prefill do Claude](https://platform.claude.com/docs/en/api/errors#prefill-not-supported).
+
+O corretor também usa o supervisor externo para limitar etapas, sem `agent.steps` na
+configuração isolada, preservando a mesma compatibilidade com o modelo.
 
 ## O que é medido
 
@@ -96,6 +100,14 @@ autor autorizado e issue liberada, usa permissões mínimas, registra evidência
 testes e mantém a revisão humana como decisão de entrega. A revisão por IA é
 consultiva.
 
+O [engineering loop](engineering-loop.md) permite correção automática somente com a variável
+`AI_LOOP_ENABLED=true` e a label `ai:autofix` na PR. O perfil `correction` limita cada execução
+a 20 etapas, 600 segundos, estimativa de USD 3 e 750.000 unidades conservadoras de tokens.
+São no máximo duas tentativas, com reserva estimada agregada de USD 9 para revisões/correções,
+persistida antes de chamar o modelo. Falhas e cancelamentos consomem a reserva. O agente não
+executa comandos; testes e publicação acontecem em etapas separadas. A decisão de merge
+continua com o mantenedor. A reserva é um controle operacional estimado, não um teto de fatura.
+
 A primeira revisão real demonstrou também o limite de analisar apenas um diff:
 o modelo supôs ausência de limpeza de banco e helpers que já existiam na base.
 Os 67 testes Java e a inspeção do código-base refutaram essas hipóteses. O revisor passou
@@ -107,6 +119,12 @@ As revisões são serializadas por PR sem cancelar uma inferência já iniciada.
 Isso preserva a coleta do consumo e dos artefatos. Se o SHA mudar, a publicação
 descarta o resultado obsoleto; se já houver comentário para o mesmo SHA, a etapa
 de inferência é ignorada. A reexecução real `39544635495` confirmou esse comportamento.
+
+O [laboratório posterior da PR #32](validacao-engineering-loop.md) publicou duas correções
+e parou em `needs-human`, com estimativa total de USD 0.53927370. A triagem assistida dos
+achados finais antecedeu a integração autorizada. A conclusão técnica do workflow não é
+uma aprovação da entrega. O [modelo de trabalho](modelo-de-trabalho.md) define esse acordo;
+triagem estruturada, evidência durável e quotas por equipe são propostas do [roadmap](roadmap.md).
 
 Antes de conectar ambientes internos, os responsáveis devem definir:
 

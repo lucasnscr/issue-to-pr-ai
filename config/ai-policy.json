@@ -10,6 +10,15 @@
       "maxOutputBytes": 12582912,
       "requireUsage": true
     },
+    "correction": {
+      "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
+      "maxSteps": 20,
+      "timeoutSeconds": 600,
+      "maxEstimatedCostUsd": 3,
+      "maxPolicyTokenUnits": 750000,
+      "maxOutputBytes": 8388608,
+      "requireUsage": true
+    },
     "review": {
       "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
       "maxSteps": 1,
