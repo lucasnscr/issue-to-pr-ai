@@ -1,7 +1,8 @@
 const report = require('./review-report.cjs');
 const loop = require('./engineering-loop.cjs');
 const triage = require('./review-triage.cjs');
-const CHECK = 'AI review gate';
+const CHECK = 'AI review decision';
+const REQUIRED_CHECK = 'AI review gate';
 const workerPath = '.github/workflows/ai-review-gate.yml';
 const access = permission => ['write', 'maintain', 'admin'].includes(permission);
 const result = (conclusion, title, summary) => ({ conclusion, title, summary });
@@ -10,6 +11,7 @@ async function activate({ github, repo, number }) {
   const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: number });
   if (pr.state !== 'open') return;
   await publish({ github, repo, pr, forceNew: true, assessment: result('action_required', 'Revisão requerida: reavaliando liberação', 'A autorização de revisão invalida a liberação anterior até a reconciliação dos dados atuais.') });
+  await refreshRequired({ github, repo, pr, assessment: { conclusion: 'action_required' } });
   const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: number, per_page: 100 });
   if (!comments.some(c => c.user?.login === triage.BOT && c.body?.startsWith(triage.REQUIRED))) {
     await github.rest.issues.createComment({ ...repo, issue_number: number,
@@ -57,7 +59,7 @@ async function ciState(github, repo, sha) {
   return latest.conclusion === 'success' ? 'success' : 'failure';
 }
 
-async function reconcileDecisions({ github, repo, pr, comments, envelope, record, running, acknowledgeAfter, context, defaultBranch, cache }) {
+async function reconcileDecisions({ github, repo, pr, comments, envelope, record, running, acknowledgeAfter, context, defaultBranch, cache, readOnly = false }) {
   const receipts = comments.filter(c => c.user?.login === triage.BOT && c.body?.startsWith(triage.MARKER)).map(c => triage.decodeReceipt(c.body));
   const identifiers = new Set(envelope.review.findings.map(triage.findingId));
   const cycle = record.id ? triage.cycleId(record.state) : null;
@@ -73,6 +75,7 @@ async function reconcileDecisions({ github, repo, pr, comments, envelope, record
     const existing = receipts.filter(r => r.sourceCommentId === source.id);
     if (existing.length > 1) throw new Error('Duplicate triage receipts require investigation.');
     if (existing.length) continue;
+    if (readOnly) continue;
     const receipt = { version: 1, repository: `${repo.owner}/${repo.repo}`, pr: pr.number, ...command,
       actor: source.user.login, sourceCommentId: source.id, sourceHash: triage.hash(source.body),
       workerRunId: context.runId, workerRunAttempt: Number(process.env.GITHUB_RUN_ATTEMPT || 1) };
@@ -95,15 +98,25 @@ async function reconcileDecisions({ github, repo, pr, comments, envelope, record
     if (receipt.workerRunId !== context.runId) await trustedRun(github, repo, receipt.workerRunId, receipt.workerRunAttempt, workerPath, defaultBranch);
     decisions.set(receipt.target, receipt);
   }
+  if (readOnly) {
+    for (const source of sources) {
+      const command = triage.parseCommand(source.body);
+      if (command && command.sha === pr.head.sha && command.reviewRunId === envelope.runId && validTarget(command, source) &&
+          source.created_at === source.updated_at && access(await permission(github, repo, source.user.login, cache)) &&
+          !receipts.some(r => r.sourceCommentId === source.id) && source.id > (decisions.get(command.target)?.sourceCommentId || 0)) {
+        decisions.set(command.target, { action: 'awaiting-receipt', sourceCommentId: source.id });
+      }
+    }
+  }
   return { decisions, cycle, canAcknowledge };
 }
 
-async function assess({ github, repo, pr, comments, context, forceRequired = false, defaultBranch }) {
+async function assess({ github, repo, pr, comments, context, forceRequired = false, defaultBranch, readOnly = false }) {
   const required = forceRequired || pr.labels?.some(l => ['ai:ready', 'ai:autofix'].includes(l.name)) ||
     comments.some(c => c.user?.login === triage.BOT && (c.body?.startsWith(triage.REQUIRED) || c.body?.includes('<!-- continuous-ai-review:') || c.body?.startsWith(loop.STATE_MARKER || '<!-- continuous-ai-engineering-state:v1 -->')));
   if (!required) return result('success', 'Fluxo manual: revisão por IA não autorizada', 'A CI e as regras de revisão da branch continuam obrigatórias.');
   if (pr.head.repo?.full_name !== `${repo.owner}/${repo.repo}`) return result('action_required', 'PR de fork requer entrega interna', 'O fluxo de revisão automatizada aceita somente branches deste repositório.');
-  if (!comments.some(c => c.user?.login === triage.BOT && c.body?.startsWith(triage.REQUIRED))) {
+  if (!readOnly && !comments.some(c => c.user?.login === triage.BOT && c.body?.startsWith(triage.REQUIRED))) {
     await github.rest.issues.createComment({ ...repo, issue_number: pr.number,
       body: `${triage.REQUIRED}\nRevisão por IA requerida nesta PR. Remover labels não apaga a autorização registrada. O check é reavaliado para cada SHA; triagem e merge são decisões distintas.` });
   }
@@ -118,7 +131,7 @@ async function assess({ github, repo, pr, comments, context, forceRequired = fal
     acknowledgeAfter = Math.max(acknowledgeAfter, Date.parse(run.updated_at));
   }
   const cache = new Map();
-  const { decisions, cycle, canAcknowledge } = await reconcileDecisions({ github, repo, pr, comments, envelope, record, running, acknowledgeAfter, context, defaultBranch, cache });
+  const { decisions, cycle, canAcknowledge } = await reconcileDecisions({ github, repo, pr, comments, envelope, record, running, acknowledgeAfter, context, defaultBranch, cache, readOnly });
   const ci = await ciState(github, repo, pr.head.sha);
   if (ci !== 'success') return result(ci === 'failure' ? 'failure' : 'action_required', ci === 'failure' ? 'CI não aprovada para este SHA' : 'Aguardando CI do SHA atual', 'Uma decisão de triagem não substitui testes aprovados do commit atual.');
   if (running) return result('action_required', 'Correção ainda em execução', 'Aguarde o encerramento das execuções reservadas antes de decidir a liberação.');
@@ -153,6 +166,53 @@ async function publish({ github, repo, pr, assessment, forceNew = false, expecte
   if (existing && !forceNew) await github.rest.checks.update({ ...repo, check_run_id: existing.id, ...fields });
   else await github.rest.checks.create({ ...repo, head_sha: pr.head.sha, ...fields });
   return true;
+}
+
+async function refreshRequired({ github, repo, pr, assessment }) {
+  const { data } = await github.rest.actions.listWorkflowRuns({ ...repo,
+    workflow_id: 'ai-review-gate-check.yml', event: 'pull_request_target', head_sha: pr.head.sha, per_page: 100 });
+  const source = data.workflow_runs.filter(r => r.event === 'pull_request_target' && r.head_sha === pr.head.sha &&
+    r.path === '.github/workflows/ai-review-gate-check.yml' && r.head_repository?.full_name === `${repo.owner}/${repo.repo}` &&
+    r.display_title === `AI review gate PR #${pr.number}`).sort((a, b) => b.id - a.id)[0];
+  if (!source || source.status !== 'completed') return;
+  const expected = assessment.conclusion === 'success' ? 'success' : 'failure';
+  if (source.conclusion !== expected) await github.rest.actions.reRunWorkflow({ ...repo, run_id: source.id });
+}
+
+// Native pull_request_target job: read trusted metadata again, never manufacture
+// a passing required result from a green dispatch job or a stale API check.
+async function verify({ github, context, core }) {
+  const repo = context.repo;
+  const source = context.payload.pull_request;
+  if (context.eventName !== 'pull_request_target' || !report.integer(source?.number)) throw new Error('A native PR event is required.');
+  const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: source.number });
+  const generation = await currentCheck(github, repo, pr.head.sha);
+  let assessment;
+  try {
+    if (pr.state !== 'open' || pr.head.sha !== source.head.sha || !generation || generation.conclusion !== 'success') {
+      throw new Error('A current reconciled decision is required.');
+    }
+    const peers = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', per_page: 100 });
+    if (peers.length > 100) throw new Error('Too many open PRs.');
+    const results = [];
+    for (const item of peers.filter(p => p.head.sha === pr.head.sha)) {
+      const { data: peer } = await github.rest.pulls.get({ ...repo, pull_number: item.number });
+      const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: peer.number, per_page: 100 });
+      if (comments.length > 1000 || peer.state !== 'open' || peer.head.sha !== pr.head.sha) throw new Error('PR changed or exceeds metadata limits.');
+      results.push(await assess({ github, repo, pr: peer, comments, context, readOnly: true,
+        defaultBranch: context.payload.repository.default_branch }));
+    }
+    const rank = { success: 0, action_required: 1, failure: 2 };
+    assessment = results.sort((a, b) => rank[b.conclusion] - rank[a.conclusion])[0];
+    const { data: latest } = await github.rest.pulls.get({ ...repo, pull_number: pr.number });
+    if (!assessment || latest.state !== 'open' || latest.head.sha !== pr.head.sha ||
+        (await currentCheck(github, repo, pr.head.sha))?.id !== generation.id) throw new Error('The PR or decision generation changed.');
+  } catch {
+    assessment = result('failure', 'Liberação não confirmada', 'Aguarde a reconciliação e confira revisão, CI, triagem e commit atuais. Uma falha de consulta mantém o bloqueio.');
+  }
+  await core.summary.addHeading(REQUIRED_CHECK).addRaw(`${assessment.title}\n\n${assessment.summary}`).write();
+  if (assessment.conclusion !== 'success') core.setFailed(assessment.title);
+  return assessment;
 }
 
 async function run({ github, context, core }) {
@@ -209,6 +269,7 @@ async function run({ github, context, core }) {
     }
     const published = await publish({ github, repo, pr, assessment, expectedGeneration });
     core.notice(published ? `${CHECK}: ${assessment.conclusion} — ${assessment.title}` : 'A newer invalidation superseded this release decision.');
+    if (published) for (const peer of peers) await refreshRequired({ github, repo, pr: peer, assessment });
   }
 }
 
@@ -226,6 +287,7 @@ async function route({ github, context, core }) {
     const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: numbers[0] });
     if (changed || pr.head.sha === command.sha) {
       await publish({ github, repo, pr, forceNew: true, assessment: result('action_required', 'Reavaliando decisão de triagem', 'Uma decisão nova requer a reconciliação dos dados atuais.') });
+      await refreshRequired({ github, repo, pr, assessment: { conclusion: 'action_required' } });
     }
   } else if (context.eventName === 'pull_request_target') {
     numbers = [context.payload.pull_request.number];
@@ -233,13 +295,14 @@ async function route({ github, context, core }) {
   } else if (context.eventName === 'workflow_run') {
     if (!report.integer(context.payload.workflow_run?.id)) return;
     const { data: source } = await github.rest.actions.getWorkflowRun({ ...repo, run_id: context.payload.workflow_run.id });
-    if (source.head_repository?.full_name !== `${repo.owner}/${repo.repo}` || !['.github/workflows/ci.yml', '.github/workflows/ai-review.yml', '.github/workflows/ai-correct.yml'].includes(source.path)) return;
-    const title = source.display_title?.match(/^AI (?:review|engineering) PR #([1-9]\d*)$/);
+    if (source.head_repository?.full_name !== `${repo.owner}/${repo.repo}` || !['.github/workflows/ci.yml', '.github/workflows/ai-review.yml', '.github/workflows/ai-correct.yml', '.github/workflows/ai-review-gate-check.yml'].includes(source.path)) return;
+    const title = source.display_title?.match(/^AI (?:review|engineering|review gate) PR #([1-9]\d*)$/);
     if (title) {
       numbers = [Number(title[1])];
       // A failed setup must not turn an explicitly requested review back into
       // the manual path, even when no patch or model output was produced.
-      forceRequired = source.event === 'workflow_dispatch' && source.head_branch === context.payload.repository.default_branch;
+      forceRequired = ['.github/workflows/ai-review.yml', '.github/workflows/ai-correct.yml'].includes(source.path) &&
+        source.event === 'workflow_dispatch' && source.head_branch === context.payload.repository.default_branch;
     }
     else if (source.path === '.github/workflows/ci.yml') {
       const prs = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', head: `${repo.owner}:${source.head_branch}`, per_page: 100 });
@@ -255,4 +318,4 @@ async function route({ github, context, core }) {
   core.notice('Release gate reconciliation requested; source code was not executed.');
 }
 
-module.exports = { CHECK, activate, assess, ciState, latestReview, reconcileDecisions, currentCheck, publish, run, route, trustedRun };
+module.exports = { CHECK, REQUIRED_CHECK, activate, assess, ciState, latestReview, reconcileDecisions, currentCheck, publish, refreshRequired, verify, run, route, trustedRun };
