@@ -44,6 +44,19 @@ test('missing files, truncated patches and oversized diffs fail explicitly', asy
   await assert.rejects(prepareReview(basePr, [{ ...file, patch: '@@ -1 +1 @@\n-old\n+' + 'x'.repeat(33000) }]));
 });
 
+test('explicit trusted dispatch permits draft review while forks remain blocked', async () => {
+  const previous = process.env.ALLOW_DRAFT_REVIEW;
+  process.env.ALLOW_DRAFT_REVIEW = 'true';
+  try {
+    assert.equal((await prepareReview({ ...basePr, draft: true })).ready, 'true');
+    assert.equal((await prepareReview({ ...basePr, draft: true,
+      head: { ...basePr.head, repo: { full_name: 'fork/catalog' } } })).ready, 'false');
+  } finally {
+    if (previous === undefined) delete process.env.ALLOW_DRAFT_REVIEW;
+    else process.env.ALLOW_DRAFT_REVIEW = previous;
+  }
+});
+
 test('publisher creates once and updates its own comment for the same SHA', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'continuous-ai-idempotency-test-'));
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'continuous-ai-publish-workspace-'));

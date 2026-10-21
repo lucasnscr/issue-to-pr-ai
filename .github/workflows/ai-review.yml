@@ -2,17 +2,23 @@ name: AI review
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Same-repository PR number to review (including a draft)
+        required: true
+        type: string
 permissions:
   contents: read
 concurrency:
-  group: ai-review-${{ github.event.pull_request.number }}
+  group: ai-review-${{ github.event.pull_request.number || inputs.pull_request }}
   cancel-in-progress: true
 jobs:
   review:
     if: >-
       vars.AI_ENABLED == 'true' && vars.AI_REVIEW_ENABLED == 'true' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.draft == false
+      ((github.event_name == 'workflow_dispatch' && github.ref_name == github.event.repository.default_branch) ||
+       (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false))
     runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
@@ -25,7 +31,7 @@ jobs:
       # Always use trusted tooling; never checkout or execute the PR head here.
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -39,6 +45,19 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
+            if (context.eventName === 'workflow_dispatch') {
+              const number = Number(context.payload.inputs.pull_request);
+              if (!Number.isSafeInteger(number) || number < 1) throw new Error('Invalid PR number.');
+              const { data: access } = await github.rest.repos.getCollaboratorPermissionLevel({
+                ...context.repo, username: context.actor,
+              });
+              if (!['admin', 'maintain', 'write'].includes(access.permission) && context.actor !== 'github-actions[bot]') {
+                throw new Error('Write access is required for manual AI review.');
+              }
+              const { data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: number });
+              context.payload.pull_request = pr;
+              process.env.ALLOW_DRAFT_REVIEW = 'true';
+            }
             const prepare = require('./.github/scripts/review-context.cjs');
             await prepare({ github, context, core });
       - name: Generate review without a GitHub write token
@@ -69,6 +88,6 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always() && steps.started.outcome == 'success'
         with:
-          name: ai-review-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          name: ai-review-${{ github.event.pull_request.number || inputs.pull_request }}-${{ github.run_attempt }}
           path: artifacts/
           retention-days: 14

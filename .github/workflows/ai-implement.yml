@@ -29,65 +29,98 @@ jobs:
           script: |
             const authorize = require('./.github/scripts/authorize.cjs');
             await authorize({ github, context, core });
-  opencode:
+  implement:
     needs: authorize
-    if: needs.authorize.outputs.agent == 'opencode'
+    if: >-
+      needs.authorize.outputs.agent == 'opencode' ||
+      (needs.authorize.outputs.agent == 'claude' && vars.CLAUDE_ENABLED == 'true')
     runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
     timeout-minutes: 25
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+      contents: read
+      issues: read
     env:
-      MODEL: ${{ vars.OPENCODE_MODEL || 'anthropic/claude-sonnet-4-6' }}
+      MODEL: ${{ needs.authorize.outputs.agent == 'claude' && (vars.CLAUDE_MODEL || 'anthropic/claude-sonnet-4-6') || (vars.OPENCODE_MODEL || 'anthropic/claude-sonnet-4-6') }}
+    outputs:
+      issue: ${{ steps.task.outputs.issue }}
+      base_ref: ${{ steps.task.outputs.base_ref }}
+      base_sha: ${{ steps.task.outputs.base_sha }}
+      branch: ${{ steps.task.outputs.branch }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Identify the trusted base
+        run: echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Re-authorize and prepare the issue
+        id: task
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const prepare = require('./.github/scripts/prepare-implementation.cjs');
+            await prepare({ github, context, core });
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
           java-version: '21'
+          cache: maven
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Install pinned OpenCode CLI
+      - name: Install pinned OpenCode
+        if: needs.authorize.outputs.agent == 'opencode'
         run: npm install --global opencode-ai@1.19.3
-      - name: Preserve trusted PR normalization
-        run: cp .github/scripts/ensure-draft.cjs "$RUNNER_TEMP/ensure-draft.cjs"
+      - name: Install pinned Claude Code
+        if: needs.authorize.outputs.agent == 'claude'
+        run: npm install --global @anthropic-ai/claude-code@2.1.306
+      - name: Preserve independent scope and acceptance validators
+        run: |
+          cp scripts/validate-agent-changes.mjs "$RUNNER_TEMP/validate-agent-changes.mjs"
+          cp scripts/category-acceptance.mjs "$RUNNER_TEMP/category-acceptance.mjs"
+          cp scripts/price-acceptance.mjs "$RUNNER_TEMP/price-acceptance.mjs"
       - id: started
         run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
-      - name: Implement request
+      - name: Implement without a GitHub write token
         id: agent
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VLLM_BASE_URL: ${{ vars.VLLM_BASE_URL }}
           VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.AI_GITHUB_TOKEN || github.token }}
-          USE_GITHUB_TOKEN: 'true'
-          SHARE: 'false'
-        run: |
-          git config --local user.name 'github-actions[bot]'
-          git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          gh auth setup-git
-          opencode github run
-      - name: Keep the resulting pull request in draft
-        if: always() && steps.agent.outcome == 'success'
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        with:
-          github-token: ${{ secrets.AI_GITHUB_TOKEN || github.token }}
-          script: |
-            const ensureDraft = require(require('node:path').join(process.env.RUNNER_TEMP, 'ensure-draft.cjs'));
-            await ensureDraft({ github, context, core });
-      - name: Verify resulting code
+          TASK_FILE: ${{ steps.task.outputs.task }}
+          IMPLEMENTATION_AGENT: ${{ needs.authorize.outputs.agent }}
+        run: node scripts/run-implementation.mjs
+      - name: Check scope before executing generated code
+        env:
+          EXPECTED_SHA: ${{ steps.task.outputs.base_sha }}
+        run: node "$RUNNER_TEMP/validate-agent-changes.mjs"
+      - name: Preserve candidate for failed-test diagnosis
+        run: git diff --cached --binary > artifacts/candidate.patch
+      - name: Unit and real PostgreSQL integration tests
         id: tests
         run: ./mvnw -B -ntp verify
-      - name: Record execution
+      - name: Full application in Docker with independent HTTP acceptance
+        env:
+          ACCEPTANCE_PROFILE: ${{ vars.AI_ACCEPTANCE_PROFILE || 'category' }}
+        run: |
+          trap 'docker compose logs --no-color; docker compose down -v' EXIT
+          docker build -t catalog-api:0.1.0 .
+          docker compose up --no-build -d
+          node scripts/smoke.mjs
+          node "$RUNNER_TEMP/category-acceptance.mjs"
+          if [ "$ACCEPTANCE_PROFILE" = 'price' ]; then
+            node "$RUNNER_TEMP/price-acceptance.mjs"
+          fi
+      - name: Package validated implementation
+        run: |
+          git diff --exit-code
+          git diff --cached --binary > artifacts/implementation.patch
+          test -s artifacts/implementation.patch
+      - name: Record execution and usage
         if: always() && steps.started.outcome == 'success'
         env:
-          AGENT: opencode
+          AGENT: ${{ needs.authorize.outputs.agent }}
           STARTED_AT: ${{ steps.started.outputs.epoch }}
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
           TEST_OUTCOME: ${{ steps.tests.outcome }}
@@ -95,66 +128,59 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always() && steps.started.outcome == 'success'
         with:
-          name: opencode-run-${{ github.run_id }}-${{ github.run_attempt }}
+          name: implementation-${{ github.run_id }}
           path: |
-            artifacts/run-*.json
-            apps/catalog-api/target/failsafe-reports/
+            artifacts/
             apps/catalog-api/target/surefire-reports/
+            apps/catalog-api/target/failsafe-reports/
           retention-days: 14
-  claude:
-    needs: authorize
-    if: needs.authorize.outputs.agent == 'claude' && vars.CLAUDE_ENABLED == 'true'
+  publish:
+    needs: implement
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 5
     permissions:
       contents: write
       issues: write
       pull-requests: write
-      actions: read
-    env:
-      MODEL: ${{ vars.CLAUDE_MODEL || 'claude-sonnet-4-6' }}
+      actions: write
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: ${{ github.event.repository.default_branch }}
+          ref: ${{ needs.implement.outputs.base_sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          distribution: temurin
-          java-version: '21'
-      - id: started
-        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
-      - name: Implement with Claude Code
-        id: agent
-        uses: anthropics/claude-code-action@e4a6faad497d33dbc7144135c75e41f82f0bf6c0 # v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ secrets.AI_GITHUB_TOKEN || github.token }}
-          additional_permissions: 'actions: read'
-          claude_args: >-
-            --model ${{ env.MODEL }}
-            --max-turns 25
-            --max-budget-usd 3
-            --allowedTools "Bash,Read,Glob,Grep"
-            --append-system-prompt "Read AGENTS.md. For implementation requests create a draft pull request with gh pr create --draft, link the issue, include test evidence, and never merge."
-      - name: Verify resulting code
-        id: tests
-        run: ./mvnw -B -ntp verify
-      - name: Record execution
-        if: always() && steps.started.outcome == 'success'
+          name: implementation-${{ github.run_id }}
+          path: downloaded
+      - name: Apply and verify the patch in a fresh runner
         env:
-          AGENT: claude-code
-          STARTED_AT: ${{ steps.started.outputs.epoch }}
-          AGENT_OUTCOME: ${{ steps.agent.outcome }}
-          TEST_OUTCOME: ${{ steps.tests.outcome }}
-        run: node scripts/run-summary.mjs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always() && steps.started.outcome == 'success'
-        with:
-          name: claude-run-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            artifacts/run-*.json
-            apps/catalog-api/target/failsafe-reports/
-            apps/catalog-api/target/surefire-reports/
-          retention-days: 14
+          EXPECTED_SHA: ${{ needs.implement.outputs.base_sha }}
+        run: |
+          mv downloaded "$RUNNER_TEMP/implementation-artifacts"
+          git apply --check "$RUNNER_TEMP/implementation-artifacts/artifacts/implementation.patch"
+          git apply --index "$RUNNER_TEMP/implementation-artifacts/artifacts/implementation.patch"
+          node scripts/validate-agent-changes.mjs
+      - name: Publish a draft PR and explicitly start CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ needs.implement.outputs.branch }}
+          BASE_REF: ${{ needs.implement.outputs.base_ref }}
+          ISSUE_NUMBER: ${{ needs.implement.outputs.issue }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          git switch -c "$BRANCH"
+          git commit -m "feat: implement issue #$ISSUE_NUMBER with validated AI output"
+          git push origin "$BRANCH"
+          {
+            printf 'Implementa os critérios da issue #%s.\n\nCloses #%s\n\n' "$ISSUE_NUMBER" "$ISSUE_NUMBER"
+            printf 'Validação antes da publicação: Maven com PostgreSQL real, Docker, smoke e critérios HTTP independentes.\n\n'
+            printf 'Execução e consumo: https://github.com/%s/actions/runs/%s\n\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf 'Revisão humana necessária. A IA não aprovou nem integrou esta PR.\n'
+          } > "$RUNNER_TEMP/pr.md"
+          PR_URL=$(gh pr create --draft --base "$BASE_REF" --head "$BRANCH" --title "feat: implement issue #$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/pr.md")
+          PR_NUMBER=${PR_URL##*/}
+          gh workflow run ci.yml --ref "$BRANCH"
+          gh workflow run ai-review.yml --ref "$BASE_REF" -f pull_request="$PR_NUMBER"

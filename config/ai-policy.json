@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "profiles": {
+    "implementation": {
+      "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
+      "maxSteps": 35,
+      "timeoutSeconds": 900,
+      "maxEstimatedCostUsd": 5,
+      "maxPolicyTokenUnits": 750000,
+      "maxOutputBytes": 12582912,
+      "requireUsage": true
+    },
+    "review": {
+      "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
+      "maxSteps": 1,
+      "timeoutSeconds": 540,
+      "maxEstimatedCostUsd": 1,
+      "maxPolicyTokenUnits": 80000,
+      "maxOutputBytes": 4194304,
+      "requireUsage": true
+    }
+  }
+}

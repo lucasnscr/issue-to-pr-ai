@@ -5,7 +5,8 @@ module.exports = async ({ github, context, core }) => {
   core.setOutput('ready', 'false');
   const { owner, repo } = context.repo;
   const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: context.payload.pull_request.number });
-  if (pr.state !== 'open' || pr.draft || pr.head.repo?.full_name !== `${owner}/${repo}`) return;
+  if (pr.state !== 'open' || (pr.draft && process.env.ALLOW_DRAFT_REVIEW !== 'true') ||
+      pr.head.repo?.full_name !== `${owner}/${repo}`) return;
   if (pr.head.sha !== context.payload.pull_request.head.sha) {
     core.notice('A newer commit superseded this review.');
     return;

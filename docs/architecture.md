@@ -10,7 +10,8 @@ para verificar o fluxo com modelos gerenciados ou inferência própria.
 |---|---|
 | GitHub Issues | Tarefa e critérios de aceite |
 | GitHub Actions | Autorização, execução, timeout, testes e artefatos |
-| OpenCode / Claude Code | Alteração do código em uma branch e entrega de PR |
+| OpenCode / Claude Code | Alteração controlada de código e testes, sem publicação |
+| Publisher isolado | Aplica o patch validado, publica branch e draft PR |
 | Modelo gerenciado / vLLM | Inferência consumida pelo agente |
 | PostgreSQL e Flyway | Persistência e evolução de schema do catálogo |
 | Maintainer | Revisão, aprovação e merge |
@@ -23,19 +24,20 @@ para o mesmo cluster. O catálogo também funciona somente com Docker Compose.
 
 O workflow escuta comentários novos. A primeira expressão do comentário deve ser `/oc`,
 `/opencode` ou `@claude`; menções dentro de texto comum não ativam o agente.
-O gate consulta a permissão atual do ator e o estado atual da issue/PR na API do GitHub.
+O gate consulta a permissão atual do ator e o estado atual da issue na API do GitHub.
 Ele exige `write`, `maintain` ou `admin`, label `ai:ready`, item aberto e ator humano.
-Em comentários de PR, exige que a branch pertença ao próprio repositório.
+Comentários de PR não iniciam implementação. A revisão possui um fluxo separado.
 
-O runner inicia a partir da branch padrão. A integração nativa recebe o contexto da issue/PR
-e cria/atualiza a branch. As instruções exigem uma PR em draft e evidências dos testes.
-OpenCode recebe no máximo 25 etapas de agente; Claude recebe 25 turnos e orçamento de USD 3
-por execução. O timeout do job é 25 minutos. Estes são limites técnicos, não estimativas de custo.
+O runner inicia na branch padrão e registra o SHA exato. As CLIs executam sem credenciais GitHub
+no ambiente e editam somente fonte, testes e documentação. O gate de escopo rejeita mudanças em
+workflows, configuração, symlinks ou HEAD. Os validadores independentes são preservados antes da inferência.
+Maven verifica a API com PostgreSQL real. Em seguida, Docker executa a aplicação empacotada e critérios HTTP.
+Somente depois um runner novo, com token de escrita, aplica o patch e cria a draft PR.
 
-O native GitHub runner do OpenCode é responsável pelo push e criação da PR; a descrição explícita
-da tarefa deve pedir implementação para que ele não se limite a responder uma pergunta.
-As instruções de draft são orientações ao agente; a proteção efetiva de `main` depende das regras
-configuradas no GitHub. Não existe merge automático no template.
+`config/ai-policy.json` define modelos permitidos e limites de tempo, etapas, tokens e custo estimado.
+A coleta encerra OpenCode ao observar excesso. Uma requisição em curso pode ultrapassar o valor:
+o teto rígido de cobrança deve ser configurado no provedor/gateway. O job expira em 25 minutos.
+A CI e a revisão são disparadas explicitamente pelo publisher. Não existe merge automático da IA.
 
 Comentários são serializados por número da issue/PR. Novos comentários de bots não iniciam
 implementações, e revisões não geram comentários de correção automaticamente.
@@ -73,7 +75,9 @@ Essa etapa não recebe um token de escrita do GitHub pelo ambiente.
 
 A publicação ocorre depois, em uma etapa com token. Um SHA obsoleto é descartado.
 Reexecuções atualizam o comentário para o mesmo SHA, evitando comentários duplicados.
-PRs em draft ou de forks são ignoradas. Marcar uma PR como pronta dispara revisão.
+PRs de forks são ignoradas. Eventos automáticos ignoram drafts; um dispatch autorizado na branch
+padrão permite revisar também uma draft. O publisher usa esse dispatch para a PR recém-gerada.
+Marcar uma PR como pronta também dispara revisão.
 Patches incompletos, binários ou acima de 32 mil bytes falham explicitamente e precisam de revisão humana.
 Uma execução bem-sucedida indica que o comentário foi produzido, não que o código foi aprovado.
 
@@ -83,10 +87,10 @@ Uma execução bem-sucedida indica que o comentário foi produzido, não que o c
 `CI / Build and tests` executa testes unitários, testes HTTP com PostgreSQL real e build Docker.
 JaCoCo produz relatório de cobertura sem usar uma porcentagem arbitrária como critério de qualidade.
 
-Execuções de IA salvam agente, modelo, duração e resultado do agente/testes em JSON e no resumo
-da Action. Tokens e custo não são inferidos: provedores e runtimes expõem métricas diferentes.
-Os registros são telemetria operacional, não prova de qualidade. Os logs e relatórios da CI são
-a fonte para inspecionar falhas.
+Execuções de IA salvam agente, modelo, duração, resultado e consumo em JSON e no resumo da Action.
+Tokens e custo estimado vêm dos metadados da CLI. Campos ausentes permanecem indisponíveis;
+o faturamento real não é inventado. A política bloqueia publicação sem telemetria válida.
+Os registros são telemetria operacional, não prova de qualidade. Consulte [governança](governance.md).
 
 ## Limites da entrega
 
