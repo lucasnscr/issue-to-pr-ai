@@ -33,7 +33,10 @@ estático em `src/main/resources/static/catalog/`. A API, Swagger e Actuator nã
 - **Segurança**: todos os dados vindos da API são inseridos via `textContent` (nunca
   `innerHTML`). Um nome como `<img src=x onerror=alert(1)>` aparece como texto puro.
 - **Acessibilidade**: labels associados aos campos, botões com nomes claros, foco visível,
-  mensagens de status com `aria-live`, navegável por teclado em viewport de 390 px.
+  mensagens de status com `aria-live` e diálogos nativos abertos por `showModal()`, que isolam
+  o conteúdo de fundo e mantêm o foco no modal. Ao cancelar, o navegador devolve o foco à origem.
+- **Resultados atuais**: uma nova busca cancela a anterior com `AbortController`, evitando
+  exibir resultados de um filtro antigo quando os parâmetros mudam durante o carregamento.
 
 ## Roteiro manual pelo navegador
 
@@ -101,6 +104,22 @@ o produto é removido. Se era o último da última página, a lista retrocede.
 
 Redimensione o navegador para 390 px de largura. A interface deve permanecer legível
 e utilizável: filtros empilhados, tabela rolável, formulário em coluna única.
+O preço e as ações continuam disponíveis pela rolagem horizontal. A região da tabela pode
+receber foco pelo teclado; as colunas não são ocultadas no celular.
+
+### 10. Foco dos diálogos
+
+Abra **Novo produto**: o foco deve começar no SKU. Use Shift+Tab até passar pelo botão Fechar
+e Tab até passar pelo botão Salvar; o foco deve continuar dentro do diálogo, sem atingir a
+tabela de fundo. Escape fecha e devolve o foco ao botão que abriu o diálogo. Repita para Editar
+e para a confirmação de exclusão. Durante uma gravação em andamento, o diálogo não deve permitir
+iniciar outra mutação pela página de fundo.
+
+### 11. Filtros durante carregamento
+
+Em uma conexão lenta, aplique um filtro e altere-o antes de a resposta chegar. Após a conclusão,
+a tabela deve refletir os parâmetros mais recentes. Uma busca cancelada não deve apresentar
+erro de rede nem substituir os resultados da última busca.
 
 ## Limitações verificadas
 
@@ -111,5 +130,5 @@ e utilizável: filtros empilhados, tabela rolável, formulário em coluna única
 - **Sem autenticação**: a interface é aberta, adequada apenas para ambientes de demonstração.
 - **Sem dados de demonstração automáticos**: o banco começa vazio; os dados são inseridos
   manualmente pelo usuário.
-- **Sem validação de minPrice = 0 via UI**: o campo aceita o valor zero, que é repassado
-  à API. A API aceita `minPrice=0.00` como filtro válido (inclusivo).
+- **Cobertura de navegador separada da CI**: os roteiros acima devem ser conferidos no browser;
+  a suíte Java não comprova contenção de foco, rolagem ou concorrência de requisições JavaScript.

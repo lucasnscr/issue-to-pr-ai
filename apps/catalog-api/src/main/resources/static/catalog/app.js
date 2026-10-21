@@ -119,8 +119,11 @@
   }
 
   // ── Carregar produtos ────────────────────────────────────────────────
+  let activeLoad = null;
   async function loadProducts(overrides) {
-    if (state.loading) return;
+    if (activeLoad) activeLoad.abort();
+    const request = new AbortController();
+    activeLoad = request;
     state.loading = true;
     showLoading();
     setStatus('Carregando produtos…');
@@ -129,9 +132,10 @@
 
     let data;
     try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const res = await fetch(url, { signal: request.signal, headers: { Accept: 'application/json' } });
       if (!res.ok) {
         const err = await tryParseJson(res);
+        if (request.signal.aborted) return;
         const msg = err && err.detail
           ? err.detail
           : 'Erro ' + res.status + ' ao buscar produtos.';
@@ -140,12 +144,17 @@
         return;
       }
       data = await res.json();
+      if (request.signal.aborted) return;
     } catch (e) {
+      if (request.signal.aborted) return;
       showError('Falha de rede ao carregar produtos. Verifique a conexão e tente novamente.');
       setStatus('');
       return;
     } finally {
-      state.loading = false;
+      if (activeLoad === request) {
+        state.loading = false;
+        activeLoad = null;
+      }
     }
 
     state.totalPages    = data.totalPages;
@@ -271,14 +280,13 @@
   function openModal() {
     clearFormErrors();
     formErrorEl.hidden = true;
-    productModal.hidden = false;
-    // Foco no primeiro campo
-    setTimeout(() => skuIn.focus(), 50);
+    productModal.showModal();
+    skuIn.focus();
   }
 
   function closeModal() {
-    productModal.hidden = true;
-    newProductBtn.focus();
+    if (state.mutating) return;
+    productModal.close();
   }
 
   function openNewModal() {
@@ -308,8 +316,9 @@
   formCancelBtn.addEventListener('click', closeModal);
 
   // Fechar modal com Escape
-  productModal.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
+  productModal.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    closeModal();
   });
 
   // Fechar ao clicar no overlay
@@ -363,6 +372,7 @@
     if (res.ok) {
       closeModal();
       await loadProducts();
+      newProductBtn.focus();
       setStatus(isEdit ? 'Produto atualizado com sucesso.' : 'Produto criado com sucesso.');
     } else {
       handleApiError(data, res.status);
@@ -423,25 +433,26 @@
     pendingDeleteId = product.id;
     confirmMsg.textContent =
       'Deseja excluir o produto "' + product.name + '" (SKU: ' + product.sku + ')? Esta ação não pode ser desfeita.';
-    confirmModal.hidden = false;
+    confirmModal.showModal();
     confirmCancel.focus();
   }
 
   function closeConfirmModal() {
     pendingDeleteId = null;
-    confirmModal.hidden = true;
+    confirmModal.close();
   }
 
   confirmCancel.addEventListener('click', () => {
-    closeConfirmModal();
+    if (!state.mutating) closeConfirmModal();
   });
 
-  confirmModal.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeConfirmModal();
+  confirmModal.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    if (!state.mutating) closeConfirmModal();
   });
 
   confirmModal.addEventListener('click', (e) => {
-    if (e.target === confirmModal) closeConfirmModal();
+    if (e.target === confirmModal && !state.mutating) closeConfirmModal();
   });
 
   confirmDelete.addEventListener('click', async () => {
@@ -471,13 +482,10 @@
     closeConfirmModal();
 
     if (res.ok || res.status === 204) {
-      // Se era o único item da última página, volta para a página anterior
-      const isLastItemOnPage =
-        state.totalElements % state.size === 1 && state.page > 0;
-      if (isLastItemOnPage) {
-        state.page = Math.max(0, state.page - 1);
-      }
+      const lastPage = Math.max(0, Math.ceil((state.totalElements - 1) / state.size) - 1);
+      state.page = Math.min(state.page, lastPage);
       await loadProducts();
+      newProductBtn.focus();
       setStatus('Produto excluído com sucesso.');
     } else {
       const data = await tryParseJson(res);
