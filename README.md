@@ -47,6 +47,11 @@ curl --fail 'http://localhost:8080/api/products?category=books'
 # Filtrar por faixa de preço (limites inclusivos, combinável com category)
 curl --fail 'http://localhost:8080/api/products?minPrice=10.00&maxPrice=99.99'
 curl --fail 'http://localhost:8080/api/products?category=books&minPrice=50.00'
+
+# Ordenar por preço ascendente ou descendente (combinável com filtros e paginação)
+curl --fail 'http://localhost:8080/api/products?sort=price,asc'
+curl --fail 'http://localhost:8080/api/products?sort=price,desc'
+curl --fail 'http://localhost:8080/api/products?category=books&sort=price,asc&page=0&size=10'
 ```
 
 O Compose usa credenciais locais de demonstração e publica portas apenas em `127.0.0.1`.
@@ -118,6 +123,8 @@ O custo registrado é uma estimativa do runtime, separado do faturamento do prov
 | GET | `/api/products?page=0&size=20` | Lista paginada, ordenada por criação e ID |
 | GET | `/api/products?category=books` | Lista filtrada por categoria (opcional, case-insensitive) |
 | GET | `/api/products?minPrice=10.00&maxPrice=99.99` | Lista filtrada por faixa de preço (limites inclusivos, combinável com `category`) |
+| GET | `/api/products?sort=price,asc` | Lista ordenada por preço crescente (desempate por ID) |
+| GET | `/api/products?sort=price,desc` | Lista ordenada por preço decrescente (desempate por ID) |
 | GET | `/api/products/{id}` | Consulta por UUID |
 | PUT | `/api/products/{id}` | Substitui campos editáveis |
 | DELETE | `/api/products/{id}` | Exclui; `204` |
@@ -130,6 +137,8 @@ Categoria inexistente retorna página vazia. Parâmetro presente mas em branco r
 Filtros `minPrice` e `maxPrice`: opcionais, independentes e combináveis entre si e com `category`.
 Limites são inclusivos. Valores negativos, com mais de duas casas decimais, ou `minPrice > maxPrice` retornam `400`.
 Paginação e totais são calculados somente sobre os produtos filtrados.
+Parâmetro `sort`: opcional. Valores aceitos: `price,asc` e `price,desc`. Preços iguais são desempatados por ID ascendente.
+Sem `sort`, a ordem padrão (data de criação e ID) é preservada. Qualquer outro valor retorna `400`.
 Erros usam `application/problem+json`: `400` para entrada inválida, `404` para produto ausente,
 `409` para SKU duplicado. A API é uma aplicação de demonstração sem autenticação de usuários.
 
