@@ -20,7 +20,8 @@ Kubernetes v1.34.0 com imagem fixada por digest e seleciona explicitamente o con
 `kind-issue-to-pr-ai-demo` em cada chamada. Não utiliza o contexto corrente.
 Ele constrói/carrega a imagem, cria um secret aleatório sem gravar sua chave em arquivo,
 aplica PostgreSQL/API e testa CRUD, validação, filtro, paginação e persistência após
-reiniciar o Pod da API. Os produtos sintéticos são removidos ao concluir.
+reiniciar os Pods da API e do PostgreSQL. O teste confirma a troca do Pod do banco
+e a preservação do registro no PVC. Os produtos sintéticos são removidos ao concluir.
 O secret existente é preservado para manter a senha compatível com o PVC.
 
 `KIND_BIN` permite informar o caminho do binário kind; `K8S_DEMO_PORT` altera a porta

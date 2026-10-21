@@ -96,6 +96,13 @@ autor autorizado e issue liberada, usa permissões mínimas, registra evidência
 testes e mantém a revisão humana como decisão de entrega. A revisão por IA é
 consultiva.
 
+A primeira revisão real demonstrou também o limite de analisar apenas um diff:
+o modelo supôs ausência de limpeza de banco e helpers que já existiam na base.
+Os 67 testes Java e a leitura humana refutaram essas hipóteses. O revisor passou
+a receber trechos limitados da base confiável e instruções para omitir hipóteses
+sem evidência. Isso reduz contexto faltante, mas não transforma o comentário em
+aprovação nem prova ausência de defeitos.
+
 Antes de conectar ambientes internos, os responsáveis devem definir:
 
 - Provedores e modelos permitidos, classificação dos dados, retenção e destino de

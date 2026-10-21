@@ -71,7 +71,10 @@ para outras issues e para Claude Code. O [guia do GitHub](setup-cloud.md) descre
 
 O workflow de revisão usa as ferramentas da base da PR, sem checkout do head.
 Ele baixa patches pela API e verifica se a PR ainda aponta para o SHA do evento.
-A inferência recebe o patch como anexo e usa o agente `reviewer`, com todas as ferramentas negadas.
+A inferência recebe o patch como texto e trechos limitados de arquivos Java da base confiável,
+priorizando setup e helpers de testes. O agente `reviewer` mantém todas as ferramentas negadas.
+Trechos omitidos não devem ser tratados como código ausente. Nenhum arquivo do head é executado
+ou baixado para compor esse contexto. O contexto total tem limite de 40 mil bytes.
 Essa etapa não recebe um token de escrita do GitHub pelo ambiente.
 
 A publicação ocorre depois, em uma etapa com token. Um SHA obsoleto é descartado.
