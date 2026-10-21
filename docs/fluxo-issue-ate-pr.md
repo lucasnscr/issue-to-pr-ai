@@ -237,7 +237,8 @@ gh workflow run ai-review.yml --repo lucasnscr/issue-to-pr-ai --ref main -f pull
 ```
 
 O workflow usa ferramentas do checkout confiável da base. Ele obtém o patch pela API e acrescenta
-trechos limitados de arquivos Java da base, principalmente setup e helpers de testes. O agente revisor
+trechos limitados de arquivos Java da base, incluindo setup/helpers de testes e os normalizadores
+da entidade e do DTO quando a área de produtos muda. O agente revisor
 tem todas as ferramentas negadas: não faz checkout do head, não executa os testes e não altera o código.
 
 Antes da inferência, o patch deve estar completo, ser textual e ter até 96.000 bytes. O contexto total
@@ -272,7 +273,8 @@ Para considerar a PR revisada:
 
 Uma execução real anterior levantou hipóteses equivocadas sobre código fora do diff.
 Trechos da base ajudam a reduzir esse problema, mas não eliminam falsos positivos ou defeitos omitidos.
-Não há correção automática em resposta à revisão, aprovação pelo agente nem merge automático por IA.
+Com `AI_LOOP_ENABLED=true` e `ai:autofix`, achados podem iniciar a correção limitada descrita acima.
+Fora desse opt-in o parecer permanece consultivo. Aprovação e merge continuam com o mantenedor.
 
 A proteção da `main` exige PR e checks atualizados. Este laboratório de um mantenedor tem zero
 aprovações adicionais obrigatórias; isso não comprova revisão humana independente. Uma equipe deve
