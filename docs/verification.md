@@ -28,5 +28,12 @@ Os testes executaram 2 casos unitários e 26 de integração, detectando seis fa
 foi bloqueada. Isso confirma execução real do modelo e da barreira de testes, sem aprovar a proposta gerada.
 O diagnóstico foi reforçado para preservar o patch candidato e exigir a suíte completa do agente.
 
+A [segunda execução real](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39537190954)
+foi aprovada: 2 testes unitários e 26 testes de integração passaram, seguidos do build Docker,
+smoke HTTP e critérios independentes de categoria, normalização, paginação, totais e entrada inválida.
+Um runner separado publicou a [PR #3](https://github.com/lucasnscr/issue-to-pr-ai/pull/3) em draft,
+com base na branch da PR #2. A revisão do diff não identificou falhas nos critérios solicitados.
+O diagnóstico foi desativado após a execução; nenhuma PR foi aprovada ou mesclada automaticamente.
+
 ARC, Kubernetes e inferência em GPU ainda não foram executados. Os manifestos foram renderizados,
 sem aplicar mudanças em um cluster. Consulte [GitHub](setup-cloud.md) e [Kubernetes](setup-kubernetes.md).
