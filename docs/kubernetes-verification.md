@@ -17,6 +17,7 @@ Critérios verificados por HTTP através de `kubectl port-forward` do Service:
 - Filtro de categoria sem distinção de caixa e com espaços normalizados.
 - Paginação, totais, resultado vazio e parâmetros inválidos com resposta 400.
 - Alteração de produto e persistência após substituição do Pod da aplicação.
+- Persistência do mesmo registro após substituir também o Pod do PostgreSQL, com UID novo e PVC preservado.
 - Exclusão, busca posterior com resposta 404 e limpeza dos dados sintéticos.
 
 O relatório de cada execução fica em `artifacts/kubernetes-acceptance.json`,

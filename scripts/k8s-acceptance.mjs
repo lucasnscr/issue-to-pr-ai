@@ -173,6 +173,17 @@ async function deployAndAccept() {
     await startForward();
     assert.equal((await (await request(base, products[0].path, 200)).json()).name, update.name);
     passed('updates persist after the application Pod is replaced');
+    const previousDatabasePod = JSON.parse(kubectl(['-n', namespace, 'get', 'pod', 'postgres-0', '-o', 'json'])).metadata.uid;
+    forward.kill('SIGTERM');
+    kubectl(['-n', namespace, 'rollout', 'restart', 'statefulset/postgres']);
+    kubectl(['-n', namespace, 'rollout', 'status', 'statefulset/postgres', '--timeout=180s']);
+    const currentDatabasePod = JSON.parse(kubectl(['-n', namespace, 'get', 'pod', 'postgres-0', '-o', 'json'])).metadata.uid;
+    assert.notEqual(currentDatabasePod, previousDatabasePod, 'PostgreSQL must run in a new Pod.');
+    await startForward();
+    const persisted = await (await request(base, products[0].path, 200)).json();
+    assert.equal(persisted.name, update.name);
+    assert.equal(persisted.price, 14.50);
+    passed('PostgreSQL PVC preserves committed data after the database Pod is replaced');
     await request(base, products[0].path, 204, 'DELETE');
     locations.delete(products[0].path);
     await request(base, products[0].path, 404);
