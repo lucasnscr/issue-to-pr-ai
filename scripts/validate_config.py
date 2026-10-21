@@ -52,7 +52,7 @@ def main():
     activation = next(i for i, step in enumerate(review_steps) if step.get("name") == "Persist review requirement before inference")
     install = next(i for i, step in enumerate(review_steps) if step.get("name") == "Install pinned OpenCode CLI")
     assert activation < install, "Persist review authorization before CLI installation and patch preparation"
-    for file in ("ai-review-gate.yml", "ai-review-gate-events.yml"):
+    for file in ("ai-review-gate.yml", "ai-review-gate-events.yml", "ai-review-gate-check.yml"):
         text = (ROOT / ".github/workflows" / file).read_text()
         workflow = yaml.safe_load(text)
         assert "secrets." not in text and "download-artifact" not in text
@@ -65,6 +65,11 @@ def main():
     gate = yaml.safe_load((ROOT / ".github/workflows/ai-review-gate.yml").read_text())
     assert gate["jobs"]["reconcile"]["permissions"]["checks"] == "write"
     assert gate["concurrency"]["cancel-in-progress"] is False
+    native = yaml.safe_load((ROOT / ".github/workflows/ai-review-gate-check.yml").read_text())
+    # PyYAML's YAML 1.1 loader parses the unquoted key 'on' as True.
+    assert "pull_request_target" in native.get("on", native.get(True))
+    assert native["jobs"]["verify"]["name"] == "AI review gate"
+    assert all(value == "read" for value in native["permissions"].values())
     for directory in ("application", "inference"):
         base = ROOT / "infra/kubernetes" / directory
         data = yaml.safe_load((base / "kustomization.yaml").read_text())

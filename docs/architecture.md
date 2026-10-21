@@ -41,7 +41,7 @@ flowchart LR
 | Validação e primeira publicação | `validate-agent-changes.mjs`, jobs de `ai-implement.yml` | Validar aplicação e testes; outro runner cria a draft PR |
 | Revisão | `ai-review.yml`, `review-context.cjs`, `run-review.mjs`, `review-report.cjs`, `publish-review.cjs` | Preparar contexto confiável, validar JSON e publicar parecer associado ao SHA |
 | Avaliação do revisor | `ai-review-evaluation.yml`, `evaluate-reviews.mjs`, dataset versionado | Medir verdadeiros/falsos positivos e negativos, com proveniência e consumo |
-| Triagem e liberação | `ai-review-gate-events.yml`, `ai-review-gate.yml`, `review-triage.cjs`, `review-gate.cjs` | Registrar decisões autorizadas e publicar check por SHA, sem executar código candidato |
+| Triagem e liberação | `ai-review-gate-events.yml`, `ai-review-gate.yml`, `ai-review-gate-check.yml`, `review-triage.cjs`, `review-gate.cjs` | Registrar decisões autorizadas, publicar decisão por SHA e verificá-la em job nativo obrigatório, sem executar código candidato |
 | Controle do ciclo | `ai-correct.yml`, `engineering-loop.cjs` | Verificar procedência da revisão, CI, autorização, escopo e reservas |
 | Correção | `run-correction.mjs`, `validate-correction.mjs` | Editar fonte/testes/docs em diretório isolado; validar o patch antes de publicar |
 | CI | `ci.yml` | Revalidar scripts/configuração, API/PostgreSQL e aplicação em Docker |
@@ -171,6 +171,12 @@ todas as PRs abertas; para PRs no mesmo SHA, prevalece o resultado mais restriti
 autorização/decisão invalida a geração anterior do check antes da reconciliação. Falhas de
 consulta bloqueiam. Recibos de triagem preservam ator, origem, hash, justificativa, revisão
 e commit, sem alterar o histórico do controlador nem conceder tentativas adicionais.
+
+`AI review decision` é o resultado detalhado pela Checks API. A proteção exige o job nativo
+`AI review gate`, de `pull_request_target`: ele reconsulta os metadados atuais em modo
+somente leitura e reprova em pendências/falhas. O reconciliador reexecuta o workflow nativo
+do mesmo SHA/PR somente quando sua conclusão precisa mudar; o evento de conclusão permite
+acompanhar uma execução já em andamento. Não há inferência nessa verificação.
 
 ## Limites e separação de credenciais
 
