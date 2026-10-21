@@ -107,3 +107,22 @@ Antes de conectar ambientes internos, os responsáveis devem definir:
 As integrações com IAM, SIEM, faturamento e infraestrutura da empresa não estão
 implantadas neste projeto. A escolha entre nuvem e modelo privado deve ser
 validada com as equipes responsáveis, usando inicialmente dados sintéticos.
+
+## Proteção aplicada neste repositório
+
+Em 21/10/2026 a `main` recebeu proteção efetiva pela API do GitHub: PR obrigatória,
+checks `Repository checks` e `Build and tests`, branch atualizada, conversas resolvidas,
+sem force push ou exclusão. As regras também se aplicam ao administrador.
+O laboratório tem um único mantenedor e exige zero aprovações adicionais.
+Para uma equipe, configure responsáveis e ao menos uma aprovação independente.
+
+O arquivo `config/branch-protection.json` permite reproduzir a configuração do laboratório
+com uma identidade administradora autorizada:
+
+```sh
+gh api --method PUT repos/OWNER/REPO/branches/main/protection \
+  --input config/branch-protection.json
+```
+
+Uma regra aplicada não substitui controles de identidade da organização. A IA não
+recebe credenciais de administrador, não altera a proteção e não aprova suas PRs.

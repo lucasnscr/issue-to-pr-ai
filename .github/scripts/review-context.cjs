@@ -11,6 +11,14 @@ module.exports = async ({ github, context, core }) => {
     core.notice('A newer commit superseded this review.');
     return;
   }
+  const marker = `<!-- continuous-ai-review:${pr.head.sha} -->`;
+  const comments = await github.paginate(github.rest.issues.listComments, {
+    owner, repo, issue_number: pr.number, per_page: 100,
+  });
+  if (comments.some(comment => comment.user?.login === 'github-actions[bot]' && comment.body?.includes(marker))) {
+    core.notice('This exact commit already has an AI review. No additional inference was started.');
+    return;
+  }
   const files = await github.paginate(github.rest.pulls.listFiles, { owner, repo, pull_number: pr.number, per_page: 100 });
   const patch = files.map(file => `FILE: ${file.filename} (${file.status})\n${file.patch || '[No textual patch available]'}`).join('\n\n');
   const incomplete = files.some(file => {

@@ -12,14 +12,16 @@ const file = { filename: 'app.java', status: 'modified', changes: 2, additions: 
   patch: '@@ -1 +1 @@\n-old\n+new' };
 const context = { repo: { owner: 'example', repo: 'catalog' }, payload: { pull_request: basePr } };
 
-async function prepareReview(pr = basePr, files = [file]) {
+async function prepareReview(pr = basePr, files = [file], comments = []) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'continuous-ai-review-test-'));
   const previous = process.env.RUNNER_TEMP;
   process.env.RUNNER_TEMP = directory;
   const outputs = {};
+  const listComments = () => {};
   try {
     await prepare({ context, core: { setOutput: (key, value) => { outputs[key] = value; }, notice() {} },
-      github: { rest: { pulls: { get: async () => ({ data: pr }), listFiles() {} } }, paginate: async () => files } });
+      github: { rest: { pulls: { get: async () => ({ data: pr }), listFiles() {} }, issues: { listComments } },
+        paginate: async method => method === listComments ? comments : files } });
     return outputs;
   } finally {
     if (previous === undefined) delete process.env.RUNNER_TEMP;
@@ -34,6 +36,13 @@ test('review context requires the current same-repository non-draft SHA', async 
   assert.equal((await prepareReview({ ...basePr, state: 'closed' })).ready, 'false');
   assert.equal((await prepareReview({ ...basePr, head: { ...basePr.head, sha: 'newer' } })).ready, 'false');
   assert.equal((await prepareReview({ ...basePr, head: { ...basePr.head, repo: { full_name: 'fork/catalog' } } })).ready, 'false');
+});
+
+test('a completed bot review suppresses another paid request for the same SHA', async () => {
+  const comment = { user: { login: 'github-actions[bot]' }, body: `<!-- continuous-ai-review:${basePr.head.sha} -->\nReviewed.` };
+  assert.equal((await prepareReview(basePr, [file], [comment])).ready, 'false');
+  assert.equal((await prepareReview(basePr, [file], [{ ...comment, user: { login: 'someone-else' } }])).ready, 'true');
+  assert.equal((await prepareReview(basePr, [file], [{ ...comment, body: '<!-- continuous-ai-review:obsolete -->' }])).ready, 'true');
 });
 
 test('missing files, truncated patches and oversized diffs fail explicitly', async () => {

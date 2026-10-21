@@ -18,7 +18,8 @@ jobs:
     if: >-
       vars.AI_ENABLED == 'true' && vars.AI_REVIEW_ENABLED == 'true' &&
       ((github.event_name == 'workflow_dispatch' && github.ref_name == github.event.repository.default_branch) ||
-       (github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.draft == false))
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.draft == false && contains(github.event.pull_request.labels.*.name, 'ai:ready')))
     runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
     timeout-minutes: 15
     permissions:
