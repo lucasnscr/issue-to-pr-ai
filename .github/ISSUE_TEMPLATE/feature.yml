@@ -1,0 +1,29 @@
+name: Funcionalidade para o agente
+description: Descreva uma mudança verificável no catálogo
+title: '[feature] '
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema e resultado esperado
+      description: Explique o comportamento atual e o que deve mudar.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      placeholder: |
+        - [ ] O endpoint aceita o novo filtro.
+        - [ ] Há testes para resultados vazios e parâmetros inválidos.
+        - [ ] A documentação OpenAPI foi atualizada.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Escopo e restrições
+      placeholder: Preserve a paginação atual. Altere apenas a API e seus testes.
+  - type: markdown
+    attributes:
+      value: Um colaborador com escrita adiciona `ai:ready` e comenta `/oc implemente esta issue` ou `@claude implemente esta issue`.

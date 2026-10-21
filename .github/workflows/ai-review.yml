@@ -1,0 +1,74 @@
+name: AI review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  review:
+    if: >-
+      vars.AI_ENABLED == 'true' && vars.AI_REVIEW_ENABLED == 'true' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false
+    runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    env:
+      MODEL: ${{ vars.REVIEW_MODEL || 'anthropic/claude-sonnet-4-6' }}
+    steps:
+      # Always use trusted tooling; never checkout or execute the PR head here.
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install pinned OpenCode CLI
+        run: npm install --global opencode-ai@1.19.3
+      - id: started
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+      - name: Prepare patch without executing PR code
+        id: patch
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const prepare = require('./.github/scripts/review-context.cjs');
+            await prepare({ github, context, core });
+      - name: Generate review without a GitHub write token
+        id: agent
+        if: steps.patch.outputs.ready == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VLLM_BASE_URL: ${{ vars.VLLM_BASE_URL }}
+          VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+          REVIEW_DIRECTORY: ${{ steps.patch.outputs.directory }}
+        run: node scripts/run-review.mjs
+      - name: Publish advisory review
+        if: steps.patch.outputs.ready == 'true'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          REVIEW_DIRECTORY: ${{ steps.patch.outputs.directory }}
+        with:
+          script: |
+            const publish = require('./.github/scripts/publish-review.cjs');
+            await publish({ github, context, core });
+      - name: Record execution
+        if: always() && steps.started.outcome == 'success'
+        env:
+          AGENT: opencode-reviewer
+          STARTED_AT: ${{ steps.started.outputs.epoch }}
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+        run: node scripts/run-summary.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.started.outcome == 'success'
+        with:
+          name: ai-review-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: artifacts/
+          retention-days: 14

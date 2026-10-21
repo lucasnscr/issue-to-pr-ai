@@ -1,0 +1,22 @@
+# Values for the official gha-runner-scale-set Helm chart (ARC).
+# Replace the URL and create arc-github-auth separately before installing.
+githubConfigUrl: https://github.com/OWNER/REPOSITORY
+githubConfigSecret: arc-github-auth
+runnerScaleSetName: ai-kubernetes
+minRunners: 0
+maxRunners: 2
+containerMode:
+  type: dind
+template:
+  spec:
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:latest
+        command: [/home/runner/run.sh]
+        resources:
+          requests:
+            cpu: '1'
+            memory: 2Gi
+          limits:
+            cpu: '4'
+            memory: 6Gi

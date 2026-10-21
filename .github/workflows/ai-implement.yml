@@ -1,0 +1,160 @@
+name: AI implementation
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+concurrency:
+  group: ai-implementation-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  authorize:
+    if: vars.AI_ENABLED == 'true' && github.event.comment.user.type == 'User'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    outputs:
+      agent: ${{ steps.gate.outputs.agent }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - id: gate
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          script: |
+            const authorize = require('./.github/scripts/authorize.cjs');
+            await authorize({ github, context, core });
+  opencode:
+    needs: authorize
+    if: needs.authorize.outputs.agent == 'opencode'
+    runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      MODEL: ${{ vars.OPENCODE_MODEL || 'anthropic/claude-sonnet-4-6' }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install pinned OpenCode CLI
+        run: npm install --global opencode-ai@1.19.3
+      - name: Preserve trusted PR normalization
+        run: cp .github/scripts/ensure-draft.cjs "$RUNNER_TEMP/ensure-draft.cjs"
+      - id: started
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+      - name: Implement request
+        id: agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VLLM_BASE_URL: ${{ vars.VLLM_BASE_URL }}
+          VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.AI_GITHUB_TOKEN || github.token }}
+          USE_GITHUB_TOKEN: 'true'
+          SHARE: 'false'
+        run: |
+          git config --local user.name 'github-actions[bot]'
+          git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          opencode github run
+      - name: Keep the resulting pull request in draft
+        if: always() && steps.agent.outcome == 'success'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ secrets.AI_GITHUB_TOKEN || github.token }}
+          script: |
+            const ensureDraft = require(require('node:path').join(process.env.RUNNER_TEMP, 'ensure-draft.cjs'));
+            await ensureDraft({ github, context, core });
+      - name: Verify resulting code
+        id: tests
+        run: ./mvnw -B -ntp verify
+      - name: Record execution
+        if: always() && steps.started.outcome == 'success'
+        env:
+          AGENT: opencode
+          STARTED_AT: ${{ steps.started.outputs.epoch }}
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: node scripts/run-summary.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.started.outcome == 'success'
+        with:
+          name: opencode-run-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/run-*.json
+            apps/catalog-api/target/failsafe-reports/
+            apps/catalog-api/target/surefire-reports/
+          retention-days: 14
+  claude:
+    needs: authorize
+    if: needs.authorize.outputs.agent == 'claude' && vars.CLAUDE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: read
+    env:
+      MODEL: ${{ vars.CLAUDE_MODEL || 'claude-sonnet-4-6' }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - id: started
+        run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+      - name: Implement with Claude Code
+        id: agent
+        uses: anthropics/claude-code-action@e4a6faad497d33dbc7144135c75e41f82f0bf6c0 # v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.AI_GITHUB_TOKEN || github.token }}
+          additional_permissions: 'actions: read'
+          claude_args: >-
+            --model ${{ env.MODEL }}
+            --max-turns 25
+            --max-budget-usd 3
+            --allowedTools "Bash,Read,Glob,Grep"
+            --append-system-prompt "Read AGENTS.md. For implementation requests create a draft pull request with gh pr create --draft, link the issue, include test evidence, and never merge."
+      - name: Verify resulting code
+        id: tests
+        run: ./mvnw -B -ntp verify
+      - name: Record execution
+        if: always() && steps.started.outcome == 'success'
+        env:
+          AGENT: claude-code
+          STARTED_AT: ${{ steps.started.outputs.epoch }}
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: node scripts/run-summary.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.started.outcome == 'success'
+        with:
+          name: claude-run-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/run-*.json
+            apps/catalog-api/target/failsafe-reports/
+            apps/catalog-api/target/surefire-reports/
+          retention-days: 14
