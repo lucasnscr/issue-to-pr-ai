@@ -8,6 +8,9 @@ revisão por IA e um perfil opcional de inferência com vLLM no Kubernetes.
 
 Repositório: [lucasnscr/issue-to-pr-ai](https://github.com/lucasnscr/issue-to-pr-ai).
 
+Veja o [fluxo completo, da criação da issue à PR revisada](docs/fluxo-issue-ate-pr.md),
+com os comandos, controles, evidências e procedimentos para retomar execuções bloqueadas.
+
 ```mermaid
 flowchart LR
   I[Issue com critérios de aceite] --> G[Label ai:ready e comando autorizado]

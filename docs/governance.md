@@ -7,7 +7,7 @@ arquitetura aprovada pela B3 nem uma integração com seus controles internos.
 
 `config/ai-policy.json` define a lista explícita de provedores/modelos e os limites
 por perfil. `implementation` permite 35 etapas, 15 minutos, estimativa de USD 5 e
-750 mil unidades conservadoras de tokens. `review` permite uma etapa, nove
+1,5 milhão de unidades conservadoras de tokens. `review` permite uma etapa, nove
 minutos, estimativa de USD 1 e 80 mil unidades. Os valores são parâmetros do
 laboratório, não uma recomendação de orçamento corporativo.
 

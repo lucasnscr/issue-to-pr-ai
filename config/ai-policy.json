@@ -6,7 +6,7 @@
       "maxSteps": 35,
       "timeoutSeconds": 900,
       "maxEstimatedCostUsd": 5,
-      "maxPolicyTokenUnits": 750000,
+      "maxPolicyTokenUnits": 1500000,
       "maxOutputBytes": 12582912,
       "requireUsage": true
     },
