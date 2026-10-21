@@ -45,7 +45,7 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
       - id: plan
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { prepare } = require('./.github/scripts/engineering-loop.cjs');
@@ -94,7 +94,7 @@ jobs:
       - name: Install pinned OpenCode
         run: npm install --global opencode-ai@1.19.3
       - name: Recheck opt-in and current SHA before releasing a provider credential
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PR_NUMBER: ${{ needs.prepare.outputs.number }}
           EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
@@ -203,7 +203,7 @@ jobs:
           git apply --index "$GITHUB_WORKSPACE/result/artifacts/correction.patch"
           node "$GITHUB_WORKSPACE/trusted/scripts/validate-correction.mjs"
       - name: Recheck current authorization, head, and base before publication
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PR_NUMBER: ${{ needs.prepare.outputs.number }}
           EXPECTED_SHA: ${{ needs.prepare.outputs.sha }}
@@ -251,7 +251,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PR_NUMBER: ${{ needs.prepare.outputs.number }}
           PUBLISH_OUTCOME: ${{ needs.publish.result }}
