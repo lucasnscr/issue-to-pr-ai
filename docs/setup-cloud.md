@@ -52,7 +52,8 @@ gh workflow run ai-review.yml --ref main -f pull_request=NUMERO
 O modelo recebe apenas o patch completo, com ferramentas negadas. Não executa o código da PR.
 A publicação verifica novamente o SHA e atualiza seu comentário para evitar duplicação.
 Um commit que já possui revisão do bot não inicia outra inferência, inclusive ao sair de draft.
-Patches binários, incompletos ou acima de 32 mil bytes exigem revisão humana.
+Patches binários, incompletos ou acima de 96 mil bytes exigem revisão humana. O contexto completo,
+incluindo trechos da base, é limitado a 112 mil bytes; o patch nunca é truncado para caber.
 O comentário da IA é consultivo e não representa aprovação.
 
 ## Inferência privada

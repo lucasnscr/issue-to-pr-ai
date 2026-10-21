@@ -116,7 +116,7 @@ A revisão usa OpenCode sem ferramentas habilitadas: recebe o patch,
 gera o texto, e uma etapa separada publica o comentário. Ela não roda o código da PR.
 
 Consulte [política e consumo](docs/governance.md), [Cursor como alternativa](docs/cursor.md),
-[casos propostos para a B3](docs/b3-use-cases.md) e a [apresentação](docs/presentation/).
+[casos de uso em equipes de engenharia](docs/use-cases.md) e a [apresentação](docs/presentation/).
 O custo registrado é uma estimativa do runtime, separado do faturamento do provedor.
 
 ## API

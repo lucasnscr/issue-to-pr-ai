@@ -1,7 +1,7 @@
 # Governança de execução e consumo
 
 Esta é uma implementação de referência para laboratório. Não representa uma
-arquitetura aprovada pela B3 nem uma integração com seus controles internos.
+arquitetura aprovada por uma organização nem uma integração com controles corporativos.
 
 ## Política versionada
 

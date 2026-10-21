@@ -144,7 +144,7 @@
     }
   },
   "scope": {
-    "fullApplication": "API, PostgreSQL, Docker e Kubernetes local, sem interface web própria",
+    "fullApplication": "API, PostgreSQL, Docker e Kubernetes local",
     "gpuRequested": false,
     "vllmExecuted": false,
     "arcExecuted": false,
