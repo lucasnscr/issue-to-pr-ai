@@ -1,14 +1,18 @@
 package dev.continuousai.catalog.product;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.net.URI;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/products")
@@ -21,9 +25,20 @@ public class ProductController {
     }
 
     @GetMapping
-    @Operation(summary = "List products with stable pagination")
-    public ProductPage list(@RequestParam(defaultValue = "0") @Min(0) int page,
-                            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+    @Operation(summary = "List products with stable pagination, optionally filtered by category")
+    public ProductPage list(
+            @Parameter(description = "Filter by category (case-insensitive, trims surrounding spaces). " +
+                    "Returns 400 if present but blank.")
+            @RequestParam(required = false) Optional<String> category,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
+        if (category.isPresent()) {
+            if (category.get().isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Query parameter 'category' must not be blank.");
+            }
+            return service.listByCategory(category.get(), page, size);
+        }
         return service.list(page, size);
     }
 
