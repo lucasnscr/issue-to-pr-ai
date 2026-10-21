@@ -23,6 +23,13 @@ O número de etapas também é limitado em `opencode.json`. A política observa
 `step_start` e `step_finish` e bloqueia quando o limite é ultrapassado. Ao alterar
 limites, mantenha o arquivo do agente e os timeouts dos jobs compatíveis.
 
+O revisor é uma exceção de compatibilidade: OpenCode 1.19.3 adiciona uma mensagem
+`assistant` ao atingir `agent.steps`. Claude 4.6 rejeita esse prefill. Por isso o
+agente revisor não define `steps` na CLI, mantém todas as ferramentas negadas e
+o supervisor externo limita a execução a uma etapa. A validação de configuração
+preserva esse contrato. Fontes: [código da versão fixada](https://github.com/anomalyco/opencode/blob/v1.19.3/packages/opencode/src/session/prompt.ts)
+e [restrição de prefill do Claude](https://platform.claude.com/docs/en/api/errors#prefill-not-supported).
+
 ## O que é medido
 
 O artefato `artifacts/ai-usage.json` contém somente agregados: perfil, modelo,
