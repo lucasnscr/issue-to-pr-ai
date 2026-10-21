@@ -56,6 +56,36 @@ O limite foi removido na mesma branch, restaurando integralmente o serviço. A v
 entrega desta PR altera somente este relatório; a regressão não deve constar do diff final.
 Cada novo commit exige novamente revisão e CI do SHA atual antes da decisão de integração.
 
+## R2: novo commit e liberação
+
+O SHA corrigido `4f09a4355d0c19823878fb7bb31e107bf11beaa5` tinha somente este relatório
+no diff contra `main`; o serviço foi restaurado sem reduzir nem retirar testes.
+
+1. O check voltou a `action_required`, aguardando revisão do novo commit.
+2. Um [comando deliberadamente obsoleto](https://github.com/lucasnscr/issue-to-pr-ai/pull/43#issuecomment-6324866467)
+   com o SHA anterior e ação `dismiss` foi ignorado. Nenhum novo recibo foi criado; o
+   recibo original de confirmação permaneceu preservado e não liberou o novo commit.
+3. A [revisão real 39663475981](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39663475981)
+   concluiu sem achados, por USD 0,0105765 estimados. O
+   [parecer](https://github.com/lucasnscr/issue-to-pr-ai/pull/43#issuecomment-6324886603)
+   identifica explicitamente que o diff final contém somente Markdown.
+4. A [CI 39663351585](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39663351585)
+   aprovou 122 testes Node, 84 testes Java com PostgreSQL real, imagem Docker e aceitação HTTP.
+5. O [check 119442604806](https://github.com/lucasnscr/issue-to-pr-ai/runs/119442604806)
+   publicou `success`: CI e triagem aprovadas para o SHA atual.
+
+O ensaio comprovou bloqueio, recibo autorizado, invalidação por novo SHA, rejeição de
+comando obsoleto e liberação após revisão/CI atuais. A correção desta regressão foi
+manual e deliberada; não é evidência de atuação do corretor automático neste teste.
+Autorização negada, recibos falsificados, edição/exclusão de decisões, reconhecimento de
+paradas e concorrência entre gerações/PRs foram exercitados nos testes automatizados,
+sem simular esses resultados como chamadas reais ao GitHub. A revisão do revisor em R1
+permanece uma amostra de seis casos, com falso positivo observado.
+
+As duas revisões desta etapa somaram USD 0,032013 estimados. Novos commits de documentação
+também exigem seus próprios checks; os resultados acima se referem aos SHAs identificados,
+e a conversa/checks da PR preservam a validação da revisão final do relatório.
+
 O check `AI review gate` foi adicionado às verificações obrigatórias de `main`, vinculado
 ao GitHub Actions (App 15368), preservando `Repository checks`, `Build and tests`, modo
 estrito e as demais regras existentes. Isso foi aplicado pela API e conferido; não é apenas
