@@ -5,7 +5,7 @@ on:
   issue_comment:
     types: [created, edited, deleted]
   workflow_run:
-    workflows: [CI, AI review, AI engineering loop]
+    workflows: [CI, AI review, AI engineering loop, AI review gate check]
     types: [completed]
 permissions:
   contents: read

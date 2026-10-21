@@ -63,6 +63,14 @@ function fixture() {
   return { repo, context, pr, prs, comments, checks, dispatches, notices, runs, ci, permission, add, github, core, review, command, assess, run, route, state };
 }
 
+function native(s) {
+  s.context.eventName = 'pull_request_target'; s.context.payload.pull_request = structuredClone(s.pr);
+  const failures = [];
+  s.core.setFailed = value => failures.push(value);
+  s.core.summary = { addHeading() { return this; }, addRaw() { return this; }, async write() {} };
+  return { verify: () => gate.verify({ github: s.github, context: s.context, core: s.core }), failures };
+}
+
 test('triage grammar binds a full commit, review run and stable finding or cycle identifier', () => {
   const s = fixture(); const body = s.command().body;
   assert.equal(triage.parseCommand(body).target, target);
@@ -230,4 +238,60 @@ test('a failed trusted review setup persists the requirement even without labels
   await s.route(); assert(s.comments.get(3).some(c => c.body.startsWith(triage.REQUIRED)));
   assert.equal(s.checks.at(-1).conclusion, 'action_required');
   assert.equal((await s.assess()).conclusion, 'action_required');
+});
+
+test('the native required job independently validates current metadata and does not create receipts', async () => {
+  const s = fixture(); s.review(); s.command(); await s.run();
+  const n = native(s); const count = s.comments.get(3).length;
+  assert.equal((await n.verify()).conclusion, 'success'); assert.equal(n.failures.length, 0);
+  assert.equal(s.comments.get(3).length, count);
+  s.command('confirm'); assert.equal((await n.verify()).conclusion, 'action_required');
+  assert.equal(n.failures.length, 1); assert.equal(s.comments.get(3).length, count + 1);
+});
+
+test('the native job rejects a green advisory decision when CI or review is no longer valid', async () => {
+  const s = fixture(); s.review([]); await s.run(); const n = native(s);
+  s.ci[0].conclusion = 'failure'; assert.equal((await n.verify()).conclusion, 'failure');
+  s.ci[0].conclusion = 'success'; s.runs.get(100).head_branch = 'untrusted';
+  assert.equal((await n.verify()).conclusion, 'failure'); assert.equal(n.failures.length, 2);
+});
+
+test('the native job requires its own eligible PR event, current head and decision generation', async () => {
+  const s = fixture(); s.pr.labels = []; await s.run(); const n = native(s);
+  s.context.eventName = 'workflow_dispatch'; await assert.rejects(n.verify(), /native PR event/);
+  s.context.eventName = 'pull_request_target'; s.context.payload.pull_request.head.sha = next;
+  assert.equal((await n.verify()).conclusion, 'failure');
+  s.context.payload.pull_request.head.sha = sha;
+  const check = s.github.rest.checks.listForRef; let reads = 0;
+  s.github.rest.checks.listForRef = async value => { const r = await check(value); if (++reads > 1) r.data.check_runs[0] = { ...r.data.check_runs[0], id: 999 }; return r; };
+  assert.equal((await n.verify()).conclusion, 'failure');
+});
+
+test('a manual same-SHA peer cannot give the native job permission to ignore an AI finding', async () => {
+  const s = fixture(); const other = structuredClone(s.pr); other.number = 4; other.labels = [];
+  s.prs.push(other); s.comments.set(4, []); s.review();
+  await s.run(); s.checks.at(-1).conclusion = 'success';
+  const n = native(s); s.context.payload.pull_request = structuredClone(other);
+  assert.equal((await n.verify()).conclusion, 'action_required');
+});
+
+test('required-job reruns are limited to matching native PR runs whose conclusion must change', async () => {
+  const s = fixture(); const reruns = [];
+  const source = { id: 500, path: '.github/workflows/ai-review-gate-check.yml', head_sha: sha,
+    event: 'pull_request_target', head_repository: { full_name: 'example/catalog' },
+    display_title: 'AI review gate PR #3', status: 'completed', conclusion: 'failure' };
+  s.github.rest.actions.listWorkflowRuns = async () => ({ data: { workflow_runs: [source] } });
+  s.github.rest.actions.reRunWorkflow = async value => reruns.push(value.run_id);
+  const refresh = conclusion => gate.refreshRequired({ github: s.github, repo: s.repo, pr: s.pr, assessment: { conclusion } });
+  await refresh('success'); assert.deepEqual(reruns, [500]);
+  source.conclusion = 'success'; await refresh('success'); assert.equal(reruns.length, 1);
+  await refresh('action_required'); assert.equal(reruns.length, 2);
+  source.status = 'in_progress'; await refresh('success'); assert.equal(reruns.length, 2);
+  source.status = 'completed'; source.event = 'workflow_dispatch'; await refresh('success'); assert.equal(reruns.length, 2);
+});
+
+test('completion of the native required job reconciles without creating an inference authorization', async () => {
+  const s = fixture(); s.pr.labels = []; s.context.eventName = 'workflow_run'; s.context.payload.workflow_run = { id: 100 };
+  Object.assign(s.runs.get(100), { path: '.github/workflows/ai-review-gate-check.yml', event: 'pull_request_target', display_title: 'AI review gate PR #3' });
+  await s.route(); assert.equal(s.dispatches.length, 1); assert.equal(s.checks.length, 0); assert.equal(s.comments.get(3).length, 0);
 });
