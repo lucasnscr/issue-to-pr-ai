@@ -10,6 +10,9 @@ Repositório: [lucasnscr/issue-to-pr-ai](https://github.com/lucasnscr/issue-to-p
 
 Veja o [fluxo completo, da criação da issue à PR revisada](docs/fluxo-issue-ate-pr.md),
 com os comandos, controles, evidências e procedimentos para retomar execuções bloqueadas.
+O [modelo de trabalho](docs/modelo-de-trabalho.md) define papéis, critérios de entrada/saída
+e triagem para equipes. A [arquitetura](docs/architecture.md) descreve a implementação;
+o [roadmap](docs/roadmap.md) propõe como evoluir a referência para outros projetos.
 
 ```mermaid
 flowchart LR
@@ -20,8 +23,12 @@ flowchart LR
   P --> R[Revisão consultiva por IA]
   P --> K[CI obrigatória]
   R --> F{Achados e correção autorizada?}
-  F -- Sim --> E[Correção limitada e testes na mesma PR]
+  F -- Sim --> Q{CI atual e reserva disponível?}
   F -- Não --> H[Avaliação do mantenedor]
+  K --> Q
+  Q -- Sim --> E[Correção limitada e testes na mesma PR]
+  Q -- Falha, P0 ou limite --> N[Intervenção e triagem]
+  N --> H
   E --> R
   E --> K
   K --> H
@@ -64,6 +71,9 @@ curl --fail -X POST http://localhost:8080/api/products \
   -d '{"sku":"BOOK-001","name":"Kubernetes na prática","category":"books","price":99.90}'
 
 curl --fail 'http://localhost:8080/api/products?page=0&size=10'
+
+# Todas as categorias presentes, sem paginação de produtos
+curl --fail 'http://localhost:8080/api/products/categories'
 
 # Filtrar por categoria (case-insensitive, remove espaços externos)
 curl --fail 'http://localhost:8080/api/products?category=books'
@@ -131,7 +141,8 @@ OpenCode também pode usar `vllm/qwen-coder`, sem chamada à Anthropic nesse per
 Os comandos usam as CLIs fixadas em modo não interativo, com publicação isolada do agente.
 A inferência não recebe um token GitHub no ambiente. O workflow valida o escopo, roda Maven
 com PostgreSQL real, constrói a imagem e testa a API antes de publicar a PR. A CI é disparada
-explicitamente porque eventos criados pelo `GITHUB_TOKEN` normalmente não iniciam outros workflows.
+explicitamente para validar o commit publicado, inclusive quando eventos de PR da automação
+aguardam aprovação de execução no GitHub.
 A revisão usa OpenCode sem ferramentas habilitadas: recebe o patch,
 gera o texto, e uma etapa separada publica o comentário. Ela não roda o código da PR.
 
@@ -139,6 +150,24 @@ Com `AI_LOOP_ENABLED=true` e a label `ai:autofix`, os achados estruturados retor
 agente de correção. O ciclo faz até duas tentativas na mesma PR, com testes independentes,
 controle de consumo e parada para intervenção. O mantenedor decide aprovação e merge.
 Veja [ativação, limites e acompanhamento do engineering loop](docs/engineering-loop.md).
+O [relatório do teste real](docs/validacao-engineering-loop.md) registra duas correções
+automáticas, testes com PostgreSQL/Docker, consumo estimado e a parada para triagem dos pareceres.
+Nesse laboratório o estado final foi `needs-human`: o limite funcionou e os achados finais
+exigiram avaliação assistida. `ready-for-human` e CI verde não representam aprovação automática.
+
+## Usar como modelo de trabalho
+
+| Objetivo | Documento |
+|---|---|
+| Definir papéis, preparar issues e concluir entregas | [Modelo de trabalho](docs/modelo-de-trabalho.md) |
+| Entender componentes, estados e separação de credenciais | [Arquitetura](docs/architecture.md) |
+| Configurar GitHub e operar o ciclo | [Configuração](docs/setup-cloud.md) e [engineering loop](docs/engineering-loop.md) |
+| Conferir o que foi executado | [Verificação](docs/verification.md) e [teste real](docs/validacao-engineering-loop.md) |
+| Priorizar próximos incrementos | [Roadmap](docs/roadmap.md) |
+
+O fluxo atual conhece os caminhos e validadores do catálogo Java. A adoção em outra aplicação
+exige adaptação e validação próprias. Template com bootstrap, workflows reutilizáveis, triagem
+estruturada, painel e quotas compartilhadas são propostas do roadmap.
 
 Consulte [política e consumo](docs/governance.md), [Cursor como alternativa](docs/cursor.md),
 [casos de uso em equipes de engenharia](docs/use-cases.md) e a [apresentação](docs/presentation/).
@@ -150,6 +179,7 @@ O custo registrado é uma estimativa do runtime, separado do faturamento do prov
 |---|---|---|
 | POST | `/api/products` | Cria produto; `201` e `Location` |
 | GET | `/api/products?page=0&size=20` | Lista paginada, ordenada por criação e ID |
+| GET | `/api/products/categories` | Todas as categorias com produtos, sem duplicatas e em ordem alfabética; catálogo vazio retorna `[]` |
 | GET | `/api/products?category=books` | Lista filtrada por categoria (opcional, case-insensitive) |
 | GET | `/api/products?minPrice=10.00&maxPrice=99.99` | Lista filtrada por faixa de preço (limites inclusivos, combinável com `category`) |
 | GET | `/api/products?sort=price,asc` | Lista ordenada por preço crescente (desempate por ID) |
