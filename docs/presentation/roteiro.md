@@ -4,7 +4,7 @@
 
 0:00–0:40
 
-Esta é uma prova de conceito pessoal, com código público e dados fictícios. A proposta é discutir como agentes de código entram em um processo de engenharia com critérios verificáveis. Os casos para a B3 são sugestões para avaliação das equipes, sem representar adoção ou aprovação interna.
+Esta é uma prova de conceito pessoal, com código público e dados fictícios. A proposta é discutir como agentes de código entram em um processo de engenharia com critérios verificáveis. Os casos de uso são sugestões de piloto para avaliação das equipes.
 
 Fontes e evidências:
 https://github.com/lucasnscr/issue-to-pr-ai
@@ -32,7 +32,7 @@ https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39537190954
 
 2:40–3:30
 
-Mostrar primeiro o comportamento observável da aplicação pelo Swagger ou por chamadas HTTP. A aplicação completa deste demo compreende API, PostgreSQL e infraestrutura, sem uma interface web própria. O diagnóstico histórico validou a API e o banco reais. A demonstração não usa qualquer conexão com dados ou sistemas da B3.
+Mostrar primeiro o comportamento observável da aplicação pelo Swagger ou por chamadas HTTP. Esta apresentação enfatiza a API, PostgreSQL e infraestrutura. O diagnóstico histórico validou a API e o banco reais. A demonstração não usa conexões com dados ou sistemas corporativos.
 
 Fontes e evidências:
 https://github.com/lucasnscr/issue-to-pr-ai
@@ -53,10 +53,9 @@ https://github.com/lucasnscr/issue-to-pr-ai/pull/3
 
 4:50–6:10
 
-O portal público B3 for Developers disponibiliza documentação de APIs B2B. A partir desse contexto público, proponho discutir tarefas de engenharia que tenham escopo e aceite claros. Nenhuma linha desta tabela descreve um projeto interno existente. Para um primeiro piloto, usar repositório de laboratório e dados sintéticos. Precisão de domínio e decisão de entrega continuam com as pessoas responsáveis.
+Equipes que mantêm APIs e integrações podem avaliar tarefas de engenharia com escopo e aceite claros. A tabela contém hipóteses de piloto, sem descrever projetos internos. Para um primeiro piloto, usar repositório de laboratório e dados sintéticos. Precisão de domínio e decisão de entrega continuam com as pessoas responsáveis.
 
 Fontes e evidências:
-https://developers.b3.com.br/
 https://github.com/lucasnscr/issue-to-pr-ai
 
 ## Slide 7
@@ -130,4 +129,3 @@ A proposta de uma equipe, duas semanas e dez issues é um desenho de piloto, nã
 
 Fontes e evidências:
 https://github.com/lucasnscr/issue-to-pr-ai
-https://developers.b3.com.br/

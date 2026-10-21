@@ -7,7 +7,7 @@ um publisher abre uma draft PR; CI e revisão consultiva ajudam o mantenedor a a
 A aplicação usada no laboratório é um catálogo de produtos em Java 21/Spring Boot, com PostgreSQL,
 Flyway, Docker e Kubernetes local. O fluxo também serve como referência para outras aplicações,
 mas os validadores atuais são específicos deste catálogo. O projeto não representa uma solução
-aprovada pela B3 nem uma integração com seus sistemas internos.
+aprovada por uma organização nem uma integração com sistemas corporativos.
 
 ## 1. Visão geral e responsabilidades
 
@@ -238,8 +238,9 @@ O workflow usa ferramentas do checkout confiável da base. Ele obtém o patch pe
 trechos limitados de arquivos Java da base, principalmente setup e helpers de testes. O agente revisor
 tem todas as ferramentas negadas: não faz checkout do head, não executa os testes e não altera o código.
 
-Antes da inferência, o patch deve estar completo, ser textual e ter até 32.000 bytes. O contexto total
-permanece abaixo de 40.000 bytes. Patches maiores, binários ou incompletos exigem revisão manual.
+Antes da inferência, o patch deve estar completo, ser textual e ter até 96.000 bytes. O contexto total
+é limitado a 112.000 bytes. Patches maiores, binários ou incompletos exigem revisão manual; o patch
+nunca é truncado para caber no contexto.
 
 O perfil `review` permanece limitado a uma etapa, 540 segundos, estimativa de USD 1, 80.000 unidades
 de tokens e 4 MiB de saída, com telemetria obrigatória.

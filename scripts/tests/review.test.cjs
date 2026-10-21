@@ -22,6 +22,7 @@ async function prepareReview(pr = basePr, files = [file], comments = []) {
     await prepare({ context, core: { setOutput: (key, value) => { outputs[key] = value; }, notice() {} },
       github: { rest: { pulls: { get: async () => ({ data: pr }), listFiles() {} }, issues: { listComments } },
         paginate: async method => method === listComments ? comments : files } });
+    if (outputs.ready === 'true') outputs.contextText = fs.readFileSync(path.join(outputs.directory, 'context.txt'), 'utf8');
     return outputs;
   } finally {
     if (previous === undefined) delete process.env.RUNNER_TEMP;
@@ -50,7 +51,31 @@ test('missing files, truncated patches and oversized diffs fail explicitly', asy
   await assert.rejects(prepareReview(basePr, [{ ...file, additions: 2 }]));
   await assert.rejects(prepareReview(basePr, [{ ...file, patch: null }]));
   await assert.rejects(prepareReview(basePr, [{ ...file, patch: null, changes: 0, additions: 0, deletions: 0 }]));
-  await assert.rejects(prepareReview(basePr, [{ ...file, patch: '@@ -1 +1 @@\n-old\n+' + 'x'.repeat(33000) }]));
+  await assert.rejects(prepareReview(basePr, [{ ...file, patch: '@@ -1 +1 @@\n-old\n+' + 'x'.repeat(96000) }]));
+});
+
+test('frontend-sized patches are retained completely with bounded trusted base context', async () => {
+  const patch = '@@ -1 +1 @@\n-old\n+' + 'x'.repeat(59000);
+  const result = await prepareReview(basePr, [{ ...file, patch,
+    filename: 'apps/catalog-api/src/test/java/dev/continuousai/catalog/product/ProductApiIT.java' }]);
+  assert.equal(result.ready, 'true');
+  assert(result.contextText.includes('TRUSTED BASE EXCERPT:'));
+  assert(result.contextText.endsWith(patch));
+  assert(Buffer.byteLength(result.contextText) <= 112000);
+});
+
+test('patch byte boundary accepts the complete limit and rejects the next byte', async () => {
+  const prefix = '@@ -1 +1 @@\n-old\n+';
+  const envelope = `FILE: ${file.filename} (${file.status})\n`;
+  const exact = { ...file, patch: prefix + 'x'.repeat(96000 - Buffer.byteLength(envelope + prefix)) };
+  assert.equal((await prepareReview(basePr, [exact])).ready, 'true');
+  await assert.rejects(prepareReview(basePr, [{ ...exact, patch: exact.patch + 'x' }]), /review limit/);
+});
+
+test('patch limits count UTF-8 bytes rather than characters', async () => {
+  const prefix = '@@ -1 +1 @@\n-old\n+';
+  assert.equal((await prepareReview(basePr, [{ ...file, patch: prefix + 'x'.repeat(48000) }])).ready, 'true');
+  await assert.rejects(prepareReview(basePr, [{ ...file, patch: prefix + 'é'.repeat(48000) }]), /review limit/);
 });
 
 test('explicit trusted dispatch permits draft review while forks remain blocked', async () => {

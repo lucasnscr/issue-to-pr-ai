@@ -74,7 +74,8 @@ Ele baixa patches pela API e verifica se a PR ainda aponta para o SHA do evento.
 A inferência recebe o patch como texto e trechos limitados de arquivos Java da base confiável,
 priorizando setup e helpers de testes. O agente `reviewer` mantém todas as ferramentas negadas.
 Trechos omitidos não devem ser tratados como código ausente. Nenhum arquivo do head é executado
-ou baixado para compor esse contexto. O contexto total tem limite de 40 mil bytes.
+ou baixado para compor esse contexto. O patch completo pode ter até 96 mil bytes e o contexto
+total tem limite de 112 mil bytes. Patches maiores são rejeitados, sem truncamento.
 Essa etapa não recebe um token de escrita do GitHub pelo ambiente.
 
 A publicação ocorre depois, em uma etapa com token. Um SHA obsoleto é descartado.
@@ -83,7 +84,7 @@ PRs de forks são ignoradas. Eventos automáticos ignoram drafts; um dispatch au
 padrão permite revisar também uma draft. O publisher usa esse dispatch para a PR recém-gerada.
 Marcar uma PR com label `ai:ready` como pronta também dispara revisão. O opt-in evita chamadas
 pagas para PRs sem autorização, como atualizações automáticas de dependências.
-Patches incompletos, binários ou acima de 32 mil bytes falham explicitamente e precisam de revisão humana.
+Patches incompletos, binários ou acima de 96 mil bytes falham explicitamente e precisam de revisão humana.
 Uma execução bem-sucedida indica que o comentário foi produzido, não que o código foi aprovado.
 
 ## Validação e evidências

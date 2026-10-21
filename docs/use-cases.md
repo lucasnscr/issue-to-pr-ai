@@ -1,11 +1,10 @@
-# Propostas de uso para discussão na B3
+# Casos de uso em equipes de engenharia
 
 Estas são hipóteses de piloto de engenharia. Não representam uma iniciativa aprovada,
-arquitetura interna ou recomendação para alterar sistemas de produção da B3.
+arquitetura interna ou recomendação para alterar sistemas de produção de uma organização.
 
-A B3 mantém o portal público [B3 for Developers](https://developers.b3.com.br/) com documentação
-de APIs para clientes B2B. Isso oferece um contexto público para discutir qualidade de integrações.
-O catálogo deste repositório usa dados fictícios e não acessa APIs, credenciais ou dados da B3.
+Equipes que mantêm APIs e integrações podem avaliar tarefas pequenas, com contratos documentados
+e critérios de aceitação reproduzíveis. O catálogo usa dados fictícios e não acessa sistemas corporativos.
 
 ## Casos iniciais
 
@@ -16,7 +15,7 @@ O catálogo deste repositório usa dados fictícios e não acessa APIs, credenci
 | Manutenção de dependências | Atualizar uma biblioteca em um serviço isolado | Build, testes, análise de dependências e diff revisado | Uma dependência por tarefa, sem promoção automática |
 | Documentação e onboarding | Corrigir exemplo de SDK ou documentar um fluxo de erro | Exemplo executável e validação automática contra o contrato | Conteúdo autorizado, sem tokens ou endereços internos |
 
-O domínio financeiro exige critérios claros sobre precisão e comportamento.
+Cada domínio exige critérios claros sobre precisão e comportamento.
 O agente pode preparar uma proposta. O responsável pelo domínio define os critérios e revisa as mudanças.
 
 ## Piloto proposto
@@ -41,10 +40,9 @@ rejeitar valores negativos e intervalo invertido, combinar com categoria, manter
 e atualizar OpenAPI. A validação usa PostgreSQL real, Docker e chamadas HTTP.
 
 Esse exemplo aproxima a discussão de contratos, persistência e experiência do usuário sem reproduzir
-uma regra financeira ou sugerir conexão com o ambiente de produção.
+uma regra de negócio corporativa ou sugerir conexão com o ambiente de produção.
 
-## Referências públicas
+## Documentação relacionada
 
-- [B3 for Developers](https://developers.b3.com.br/), consultado em 21/10/2026
-- [B3: integrações da Área do Investidor](https://b3.com.br/pt_br/produtos-e-servicos/central-depositaria/canal-com-investidores/integracoes-da-area-do-investidor-apis/), contexto público de APIs, não fonte dos dados do demo
+- [Fluxo completo da issue à PR revisada](fluxo-issue-ate-pr.md)
 - [Possibilidades de uso do Cursor](cursor.md)
