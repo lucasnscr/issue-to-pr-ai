@@ -1,6 +1,7 @@
 # Roadmap para um modelo reutilizável de trabalho
 
-R1 possui avaliador, dataset e workflow implementados; veja o [guia de avaliação](reviewer-evaluation.md).
+R1 e R2 possuem implementação: [avaliação do revisor](reviewer-evaluation.md) e
+[triagem/check de liberação](review-triage.md). Os resultados estão na [validação](validacao-review-quality-triage.md).
 As demais linhas abaixo são propostas. A prioridade parte
 do [laboratório real](validacao-engineering-loop.md): duas correções funcionaram, mas
 pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa recomendada
@@ -12,7 +13,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 |---|---|
 | Issue autorizada → código/testes → draft PR | Adaptação ainda específica ao catálogo Java |
 | Revisão estruturada e avaliação versionada | Reduzir falsos positivos e hipóteses sobre mudanças futuras com evidências |
-| Duas correções com reserva persistida e push isolado | Triagem manual e ausência de check próprio de liberação do ciclo |
+| Duas correções, triagem rastreável e check por SHA | Medir esforço de triagem e calibrar o revisor em mais casos |
 | Telemetria e artefatos por execução | Ausência de consolidação durável por tarefa/equipe |
 | Limites observados por execução/PR | Ausência de quota financeira global integrada ao provedor |
 | Docker/PostgreSQL e Kubernetes local validados | Ausência de preview automático por PR; vLLM/ARC sem implantação validada |
@@ -22,7 +23,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 | ID | Prioridade | Feature | Critério mínimo de aceite | Depende de |
 |---|---|---|---|---|
 | R1 | Implementado | Avaliação reproduzível da qualidade do revisor | Dataset de seis casos, métricas, proveniência, modo offline e workflow real limitado; resultados reais devem ser conferidos por execução | [Guia e limites](reviewer-evaluation.md) |
-| R2 | P0 | Triagem rastreável e check de liberação do ciclo | Classificar achados por pessoa autorizada; check do SHA atual permanece pendente/bloqueado enquanto houver decisão necessária; novo SHA invalida decisões antigas | Identidade dos achados e política de triagem; R1 orienta os casos de teste |
+| R2 | Implementado | Triagem rastreável e check de liberação do ciclo | Comandos autorizados com justificativa, recibos por achado/SHA/run, reconhecimento de paradas e check bloqueado enquanto houver pendências; novo SHA invalida decisões antigas | [Guia e limites](review-triage.md) |
 | R3 | P1 | Template e bootstrap verificável | Novo repositório executa CI sem IA, detecta configuração ausente e completa uma tarefa de exemplo realmente nova, seguindo instruções reproduzíveis | Modelo de trabalho e perfil atual |
 | R4 | P1 | Workflows reutilizáveis e adaptadores por stack | Dois repositórios consomem a mesma versão de orquestração; um segundo perfil troca build/testes/caminhos sem alterar controles de publicação | R3 e contrato de entradas/saídas |
 | R5 | P1 | Histórico operacional e painel do ciclo | Consultar issue, PR, SHAs, tentativas, estado, triagem e consumo agregado; distinguir custo estimado, faturado e indisponível | Schema de eventos e retenção; R2 para decisões de triagem |
@@ -42,9 +43,9 @@ tornar um campo obrigatório no futuro. Para cada caso, preservar patch, context
 política, resultado esperado e justificativa do responsável. Um teste com resposta simulada
 valida o parser; a avaliação do modelo precisa registrar a execução real e sua variabilidade.
 
-A triagem proposta identifica achado, SHA, decisão, evidência e ator. Descartar um achado
+A triagem implementada identifica achado, SHA, decisão, evidência e ator. Descartar um achado
 como falso positivo exige justificativa; confirmar um defeito exige correção ou decisão explícita do
-responsável. O check de liberação deve refletir essa política mesmo quando o workflow que
+responsável. O check de liberação reflete essa política mesmo quando o workflow que
 registrou `needs-human` terminou tecnicamente com sucesso. Um erro ao consultar o estado
 não pode liberar a entrega por padrão. Limites e histórico de tentativas continuam preservados.
 
@@ -96,8 +97,7 @@ manifestos atuais e a execução do catálogo em kind não comprovam esses compo
 
 ## Proposta de primeiro incremento
 
-Começar por **R1**, usando os achados reais já registrados como casos de avaliação, e por
-uma entrega pequena de **R2**, que torne visível a necessidade de triagem no SHA atual.
+Com **R1/R2** implementados, ampliar a coleta de qualidade e observar a triagem no piloto.
 Depois, validar **R3** em um segundo repositório antes de generalizar a orquestração em **R4**.
 R5/R6 podem evoluir quando houver eventos e volume suficientes para justificar a operação
 compartilhada. A expansão depende de evidências de qualidade, esforço de revisão e consumo.

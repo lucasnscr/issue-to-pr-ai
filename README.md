@@ -28,10 +28,12 @@ flowchart LR
   K --> Q
   Q -- Sim --> E[Correção limitada e testes na mesma PR]
   Q -- Falha, P0 ou limite --> N[Intervenção e triagem]
-  N --> H
+  N --> T[Triagem rastreável e AI review gate]
   E --> R
   E --> K
-  K --> H
+  K --> T
+  R --> T
+  T --> H
   H --> M[Merge autorizado]
   A -. inferência .-> L[Modelo gerenciado ou vLLM privado]
 ```
@@ -155,6 +157,11 @@ automáticas, testes com PostgreSQL/Docker, consumo estimado e a parada para tri
 Nesse laboratório o estado final foi `needs-human`: o limite funcionou e os achados finais
 exigiram avaliação assistida. `ready-for-human` e CI verde não representam aprovação automática.
 
+O check separado [AI review gate](docs/review-triage.md) exige revisão, CI e triagem válidas
+para o commit atual, preservando tentativas e reservas. A [avaliação do revisor](docs/reviewer-evaluation.md)
+mede qualidade com casos versionados; o primeiro teste real encontrou dois defeitos e um falso
+positivo. Veja a [evidência de R1/R2](docs/validacao-review-quality-triage.md).
+
 ## Usar como modelo de trabalho
 
 | Objetivo | Documento |
@@ -164,11 +171,12 @@ exigiram avaliação assistida. `ready-for-human` e CI verde não representam ap
 | Configurar GitHub e operar o ciclo | [Configuração](docs/setup-cloud.md) e [engineering loop](docs/engineering-loop.md) |
 | Conferir o que foi executado | [Verificação](docs/verification.md) e [teste real](docs/validacao-engineering-loop.md) |
 | Avaliar a qualidade do revisor com casos versionados | [Avaliação do revisor](docs/reviewer-evaluation.md) |
+| Classificar achados e exigir liberação do commit | [Triagem rastreável](docs/review-triage.md) |
 | Priorizar próximos incrementos | [Roadmap](docs/roadmap.md) |
 
 O fluxo atual conhece os caminhos e validadores do catálogo Java. A adoção em outra aplicação
-exige adaptação e validação próprias. Template com bootstrap, workflows reutilizáveis, triagem
-estruturada, painel e quotas compartilhadas são propostas do roadmap.
+exige adaptação e validação próprias. Template com bootstrap, workflows reutilizáveis,
+painel e quotas compartilhadas são propostas do roadmap.
 
 Consulte [política e consumo](docs/governance.md), [Cursor como alternativa](docs/cursor.md),
 [casos de uso em equipes de engenharia](docs/use-cases.md) e a [apresentação](docs/presentation/).

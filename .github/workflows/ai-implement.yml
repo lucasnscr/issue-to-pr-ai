@@ -189,9 +189,10 @@ jobs:
           } > "$RUNNER_TEMP/pr.md"
           PR_URL=$(gh pr create --draft --base "$BASE_REF" --head "$BRANCH" --title "feat: implement issue #$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/pr.md")
           PR_NUMBER=${PR_URL##*/}
+          gh pr edit "$PR_NUMBER" --add-label ai:ready
           AUTOFIX=$(gh issue view "$ISSUE_NUMBER" --json state,labels --jq '.state == "OPEN" and ([.labels[].name] | index("ai:ready") != null) and ([.labels[].name] | index("ai:autofix") != null)')
           if [ "$AUTOFIX" = true ]; then
-            gh pr edit "$PR_NUMBER" --add-label ai:autofix --add-label ai:ready
+            gh pr edit "$PR_NUMBER" --add-label ai:autofix
           fi
           gh workflow run ci.yml --ref "$BRANCH"
           gh workflow run ai-review.yml --ref "$BASE_REF" -f pull_request="$PR_NUMBER"

@@ -70,3 +70,5 @@ modelo/prompt. Um conjunto de seis casos não mede qualidade universal do reviso
 
 O [roadmap](roadmap.md) registra R1; a [triagem operacional](modelo-de-trabalho.md) continua
 necessária para achados de PRs reais.
+O [primeiro resultado real](validacao-review-quality-triage.md) registrou 2 verdadeiros
+positivos, 1 falso positivo e 0 falsos negativos nos seis casos, por USD 0,05966775 estimados.

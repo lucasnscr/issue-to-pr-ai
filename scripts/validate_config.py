@@ -43,6 +43,26 @@ def main():
         assert correction_jobs[job]["permissions"]["pull-requests"] == "write", "PR conversation comments require PR write access"
     assert correction_jobs["correct"]["permissions"]["contents"] == "read"
     assert correction_jobs["correct"]["permissions"]["pull-requests"] == "read"
+    protection = json.loads((ROOT / "config/branch-protection.json").read_text())
+    assert "AI review gate" in protection["required_status_checks"]["contexts"]
+    review_jobs = yaml.safe_load((ROOT / ".github/workflows/ai-review.yml").read_text())["jobs"]
+    assert "github.event_name == 'workflow_dispatch'" in review_jobs["review"]["if"]
+    assert "github.ref_name == github.event.repository.default_branch" in review_jobs["review"]["if"]
+    activation = next(step for step in review_jobs["review"]["steps"] if step.get("name") == "Persist review requirement before inference")
+    assert activation["if"].startswith("always()"), "Failed patch preparation must still persist review authorization"
+    for file in ("ai-review-gate.yml", "ai-review-gate-events.yml"):
+        text = (ROOT / ".github/workflows" / file).read_text()
+        workflow = yaml.safe_load(text)
+        assert "secrets." not in text and "download-artifact" not in text
+        for job in workflow["jobs"].values():
+            for step in job["steps"]:
+                assert "run" not in step, "Metadata-only gate must not execute candidate shell commands"
+                if step.get("uses", "").startswith("actions/checkout@"):
+                    assert step["with"]["ref"] == "${{ github.event.repository.default_branch }}"
+                    assert step["with"]["persist-credentials"] is False
+    gate = yaml.safe_load((ROOT / ".github/workflows/ai-review-gate.yml").read_text())
+    assert gate["jobs"]["reconcile"]["permissions"]["checks"] == "write"
+    assert gate["concurrency"]["cancel-in-progress"] is False
     for directory in ("application", "inference"):
         base = ROOT / "infra/kubernetes" / directory
         data = yaml.safe_load((base / "kustomization.yaml").read_text())

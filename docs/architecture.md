@@ -24,7 +24,10 @@ flowchart LR
   E --> U["Outro runner publica na mesma PR"]
   U --> CI
   U --> R
-  L -- "Sem achados ou parada registrada" --> M["Mantenedor avalia estado e evidências"]
+  L -- "Sem achados ou parada registrada" --> T["Triagem rastreável por SHA"]
+  T --> GATE["AI review gate: CI, revisão e decisões"]
+  CI --> GATE
+  GATE --> M["Mantenedor avalia estado e evidências"]
   M --> MAIN["Merge autorizado"]
   A -. inferência .-> MODEL["Provedor gerenciado ou vLLM"]
   R -. inferência .-> MODEL
@@ -37,6 +40,8 @@ flowchart LR
 | Implementação | `run-implementation.mjs` | Executar a CLI escolhida sob política, sem publicar código |
 | Validação e primeira publicação | `validate-agent-changes.mjs`, jobs de `ai-implement.yml` | Validar aplicação e testes; outro runner cria a draft PR |
 | Revisão | `ai-review.yml`, `review-context.cjs`, `run-review.mjs`, `review-report.cjs`, `publish-review.cjs` | Preparar contexto confiável, validar JSON e publicar parecer associado ao SHA |
+| Avaliação do revisor | `ai-review-evaluation.yml`, `evaluate-reviews.mjs`, dataset versionado | Medir verdadeiros/falsos positivos e negativos, com proveniência e consumo |
+| Triagem e liberação | `ai-review-gate-events.yml`, `ai-review-gate.yml`, `review-triage.cjs`, `review-gate.cjs` | Registrar decisões autorizadas e publicar check por SHA, sem executar código candidato |
 | Controle do ciclo | `ai-correct.yml`, `engineering-loop.cjs` | Verificar procedência da revisão, CI, autorização, escopo e reservas |
 | Correção | `run-correction.mjs`, `validate-correction.mjs` | Editar fonte/testes/docs em diretório isolado; validar o patch antes de publicar |
 | CI | `ci.yml` | Revalidar scripts/configuração, API/PostgreSQL e aplicação em Docker |
@@ -60,13 +65,13 @@ conduzida pelo mantenedor. O validador não é um adaptador genérico para qualq
 Depois da geração, Maven executa testes com PostgreSQL real; Docker e critérios HTTP
 independentes verificam a aplicação empacotada. Um runner novo reaplica e confere o patch,
 publica `ai/issue-NUMERO-RUN_ID` e abre uma draft PR vinculada por `Closes #NUMERO`.
-Quando a issue também tem `ai:autofix`, o publisher transfere `ai:ready` e `ai:autofix`
-para a PR. CI e revisão são solicitadas explicitamente.
+O publisher transfere `ai:ready` e, quando autorizada na issue, `ai:autofix` para a PR.
+CI e revisão são solicitadas explicitamente.
 
 ## Revisão e procedência do parecer
 
-O revisor usa o checkout confiável da base; no ciclo, o dispatch é executado na branch
-padrão. O código do head não é executado por essa etapa. O contexto contém o patch completo
+O revisor usa checkout confiável e dispatch na branch padrão, inclusive em revisões sem
+corretor. O código do head não é executado por essa etapa. O contexto contém o patch completo
 e trechos limitados da base, incluindo setup de testes e os normalizadores de produto/DTO.
 O patch pode ter até 96.000 bytes e o contexto total até 112.000 bytes. Conteúdo incompleto,
 binário ou acima do limite é rejeitado, sem truncamento silencioso.
@@ -89,8 +94,8 @@ condições da tabela. Correções exigem também `AI_LOOP_ENABLED=true` e a aut
 | Entrada | Condições e efeito |
 |---|---|
 | Comando em issue | `AI_ENABLED=true`, issue aberta com `ai:ready`, ator autorizado; inicia implementação |
-| Evento automático de PR | Mesmo repositório, fora de draft, `ai:ready`, abertura/novo commit/reabertura/saída de draft; inicia revisão |
-| Evento de PR com correção autorizada | Condições anteriores, `AI_LOOP_ENABLED=true` e `ai:autofix`; encaminha a revisão para dispatch na branch padrão |
+| Evento automático de PR | Mesmo repositório, fora de draft, `ai:ready`, abertura/novo commit/reabertura/saída de draft; encaminha revisão para dispatch na branch padrão |
+| Evento de PR com correção autorizada | Condições anteriores, `AI_LOOP_ENABLED=true` e `ai:autofix`; após o parecer, o controlador avalia a correção |
 | Dispatch de revisão | PR aberta do mesmo repositório; aceita draft; ator manual precisa de escrita |
 | Dispatch de correção | `AI_ENABLED`, `AI_REVIEW_ENABLED` e `AI_LOOP_ENABLED` ativos, `ai:autofix`, revisão confiável e SHA atual; avalia se pode reservar uma tentativa |
 
@@ -155,9 +160,17 @@ O estado é persistido em um comentário do bot, com tentativas `reserved`, `pub
 labels. O modelo não muda o draft, não aprova e não integra código.
 
 **Estado do ciclo e conclusão do workflow são sinais diferentes.** Um job pode concluir com
-sucesso técnico depois de registrar `needs-human`. Esse comentário não implementa um check
-obrigatório de liberação do ciclo na proteção de branch. O mantenedor confere CI, pareceres
-e triagem; um check específico de liberação é uma proposta do [roadmap](roadmap.md).
+sucesso técnico depois de registrar `needs-human`. O check separado `AI review gate` exige
+revisão confiável e CI do SHA atual, decisões autorizadas sobre os achados e reconhecimento
+explícito de uma parada após terminar as correções. Novo SHA invalida decisões anteriores;
+remover labels não apaga a autorização registrada. PRs nunca autorizadas para IA recebem
+um caminho manual explícito. Veja [triagem e proteção de branch](review-triage.md).
+
+Os eventos usam somente metadados e código da branch padrão. Um worker serializado reconcilia
+todas as PRs abertas; para PRs no mesmo SHA, prevalece o resultado mais restritivo. Uma nova
+autorização/decisão invalida a geração anterior do check antes da reconciliação. Falhas de
+consulta bloqueiam. Recibos de triagem preservam ator, origem, hash, justificativa, revisão
+e commit, sem alterar o histórico do controlador nem conceder tentativas adicionais.
 
 ## Limites e separação de credenciais
 
