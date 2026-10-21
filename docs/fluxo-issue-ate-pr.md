@@ -3,6 +3,9 @@
 Este documento explica o fluxo implementado no [Issue to PR AI](https://github.com/lucasnscr/issue-to-pr-ai).
 Uma pessoa descreve a mudança em uma issue; um agente implementa; etapas independentes validam o resultado;
 um publisher abre uma draft PR; CI e revisão consultiva ajudam o mantenedor a avaliar a entrega.
+Com autorização adicional, o ciclo propõe até duas correções na mesma PR e revalida cada commit.
+O [modelo de trabalho](modelo-de-trabalho.md) define os acordos da equipe; a
+[arquitetura](architecture.md) explica componentes, estados e limites.
 
 A aplicação usada no laboratório é um catálogo de produtos em Java 21/Spring Boot, com PostgreSQL,
 Flyway, Docker e Kubernetes local. O fluxo também serve como referência para outras aplicações,
@@ -23,8 +26,17 @@ flowchart TD
     D --> B[Publisher isolado publica branch e draft PR]
     B --> C[CI da branch]
     B --> R[Revisão consultiva por IA]
-    C --> H[Mantenedor avalia código, testes e achados]
-    R --> H
+    C --> Q{CI e parecer atuais, autorização e limites?}
+    R --> Q
+    Q -->|Sem correção autorizada ou sem achados| H[Mantenedor avalia código, testes e achados]
+    Q -->|Achados válidos e reserva disponível| E[Corretor edita em diretório isolado]
+    E --> ET[Escopo, PostgreSQL, Docker e HTTP]
+    ET --> EP[Outro runner publica na mesma PR]
+    EP --> C
+    EP --> R
+    Q -->|Falha, P0 ou limite| X[needs-human e triagem do mantenedor]
+    ET -->|Falha| X
+    X --> H
     H --> M[Decisão de integrar ou solicitar ajustes]
     P -->|Limite excedido| F[Execução bloqueada sem publicação]
     S -->|Escopo inválido| F
@@ -40,6 +52,7 @@ flowchart TD
 | GitHub Actions | Aplicar os controles e executar as validações independentes |
 | Publisher | Publicar somente o patch aprovado em uma branch e draft PR |
 | Revisor por IA | Comentar possíveis defeitos do commit analisado |
+| Corretor opcional | Tratar achados demonstrados na mesma PR, dentro da autorização e dos limites |
 | Mantenedor | Conferir os achados, revisar o código e decidir o merge |
 
 OpenCode e Claude Code são ferramentas. O modelo é configurado separadamente; neste laboratório,
@@ -55,7 +68,9 @@ Os workflows devem existir na branch padrão, atualmente `main`. Em Settings →
 | Variable `AI_ENABLED=true` | Habilitar implementações autorizadas |
 | Variable `CLAUDE_ENABLED=true` | Habilitar também o comando `@claude` |
 | Variable `AI_REVIEW_ENABLED=true` | Habilitar revisão consultiva |
+| Variable `AI_LOOP_ENABLED=true` | Autorizar o ciclo limitado somente nas PRs com `ai:autofix` |
 | Variables `OPENCODE_MODEL`, `CLAUDE_MODEL`, `REVIEW_MODEL` | Selecionar modelos permitidos pela política |
+| Variable `CORRECTION_MODEL` | Selecionar o modelo do corretor OpenCode; padrão `anthropic/claude-sonnet-4-6` |
 | Variable `AI_ACCEPTANCE_PROFILE=full` | Validar categoria, preço e ordenação no Docker |
 
 Os modelos têm o padrão `anthropic/claude-sonnet-4-6` nos workflows. O publisher precisa poder criar PRs
@@ -94,7 +109,7 @@ Para mudar o escopo de uma retomada, edite a descrição antes de iniciar a nova
 ## 4. Autorizar e acionar o agente
 
 1. Manter a issue aberta.
-2. Adicionar a label `ai:ready`.
+2. Adicionar a label `ai:ready`; acrescentar `ai:autofix` somente se desejar autorizar também o corretor limitado.
 3. Um colaborador com permissão `write`, `maintain` ou `admin` publica um novo comentário:
 
 ```text
@@ -195,6 +210,9 @@ Somente esse job recebe as permissões de escrita necessárias. Ele:
 3. Abre uma **draft PR** contra a base, com `Closes #NUMERO` e link para a execução.
 4. Dispara explicitamente a CI da branch e a revisão consultiva da PR.
 
+Se a issue autorizada tiver também `ai:autofix`, o publisher transfere ambas as labels para
+a PR. O ciclo só executa quando as variáveis correspondentes estão habilitadas.
+
 O publisher decide quando publicar com base nos resultados do pipeline. A decisão não depende de
 um comando de Git ou de GitHub escolhido pelo modelo. `Closes #NUMERO` vincula a entrega à issue;
 a criação da draft PR não encerra a issue. O fechamento ocorre quando a PR é integrada à branch padrão.
@@ -280,6 +298,22 @@ A proteção da `main` exige PR e checks atualizados. Este laboratório de um ma
 aprovações adicionais obrigatórias; isso não comprova revisão humana independente. Uma equipe deve
 definir seus responsáveis e a política de aprovação. A IA não altera essa proteção para entregar código.
 
+### 11.1. Interpretar o estado do ciclo
+
+| Estado no acompanhamento | Interpretação |
+|---|---|
+| `active` | Tentativa reservada; acompanhar a execução indicada |
+| `awaiting-review` | Commit corretivo publicado; aguardar CI e novo parecer |
+| `ready-for-human` | CI aprovada e revisão atual sem achados; mantenedor avalia a entrega |
+| `needs-human` | Parada registrada; examinar achados, falhas, tentativas e consumo antes de decidir |
+
+O workflow pode concluir com sucesso técnico depois de registrar `needs-human`. O comentário
+não é um check obrigatório próprio de liberação do ciclo. A [PR #32](https://github.com/lucasnscr/issue-to-pr-ai/pull/32)
+exercitou essa situação: duas correções reais passaram em testes e foram publicadas; achados
+especulativos persistiram e o ciclo parou no limite. A triagem assistida foi registrada antes
+da integração autorizada. Veja o [relatório](validacao-engineering-loop.md) e o
+[acordo de triagem](modelo-de-trabalho.md).
+
 ## 12. Diagnosticar falhas e retomar
 
 | Situação | Resultado | Procedimento |
@@ -291,6 +325,7 @@ definir seus responsáveis e a política de aprovação. A IA não altera essa p
 | Patch de revisão muito grande/incompleto | PR continua disponível, sem parecer da IA | Revisar manualmente ou dividir uma entrega futura |
 | SHA mudou durante a revisão | Parecer antigo descartado | Revisar o commit atual por evento elegível ou dispatch |
 | Mesmo SHA já revisado | Inferência ignorada | Consultar o comentário existente e seu SHA |
+| Achado P0, falha de correção ou limite do ciclo | `needs-human`; nenhuma nova tentativa automática liberada | Inspecionar evidências e realizar triagem/correção deliberada, preservando as reservas |
 
 Os artefatos têm retenção de 14 dias. Consumo e resumo são coletados quando a etapa de inferência
 começa. O patch candidato só é salvo depois que o agente conclui e o escopo é validado; uma interrupção
@@ -320,11 +355,15 @@ Uma demonstração completa deve permitir navegar entre:
 4. CI do commit publicado.
 5. Comentário da revisão por IA associado ao commit, quando o patch é elegível.
 6. Avaliação do mantenedor, com achados aceitos ou descartados e decisão registrada.
+7. Quando houver corretor, tentativas, commits publicados e estado final do acompanhamento.
 
 Há exemplos reais de implementação em [PR #14: faixa de preço](https://github.com/lucasnscr/issue-to-pr-ai/pull/14)
 e [PR #17: ordenação](https://github.com/lucasnscr/issue-to-pr-ai/pull/17), e de
 [revisão consultiva na PR #17](https://github.com/lucasnscr/issue-to-pr-ai/pull/17#issuecomment-6308093266).
 Esses exemplos comprovam as etapas executadas, sem transformar o parecer da IA em garantia de qualidade.
+O [teste real de revisão/correção da PR #32](validacao-engineering-loop.md) complementa as
+evidências com duas correções automáticas e parada para triagem. As propostas de evolução
+estão no [roadmap](roadmap.md).
 
 ## Referências de implementação
 

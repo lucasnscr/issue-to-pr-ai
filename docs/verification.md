@@ -1,21 +1,34 @@
 # Verificação atual: 21/10/2026
 
 A API, os workflows e os controles foram validados no laboratório com PostgreSQL, Docker e Kubernetes local, sem GPU.
-A [PR #24](https://github.com/lucasnscr/issue-to-pr-ai/pull/24) acrescenta uma interface web própria, servida na mesma origem.
-Os 12 testes de entrega de assets/HTTP do frontend se somam aos 67 testes Java existentes; não executam JavaScript.
+A [PR #24](https://github.com/lucasnscr/issue-to-pr-ai/pull/24) integrou a interface web própria, servida na mesma origem.
+A [PR #32](https://github.com/lucasnscr/issue-to-pr-ai/pull/32) integrou a listagem completa de categorias e validou o ciclo de revisão/correção.
+A suíte atual tem **84 testes Java**: 2 unitários e 82 de integração, incluindo 5 casos de categorias e 12 de entrega de assets/HTTP do frontend.
+Os testes do frontend não executam JavaScript.
 O [roteiro de navegador](frontend.md) cobre as interações, foco dos diálogos, preço em 390 px e troca de filtros durante carregamento.
 
 | Evidência | Resultado |
 |---|---|
+| [CI da `main` em `3a6d1baa91c2`](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39648755163) | 84 testes Java e 97 Node, configuração/lint, build Docker e aceitação HTTP aprovados |
+| [Ciclo real de revisão/correção](validacao-engineering-loop.md) | Duas correções publicadas na PR #32, testes de regressão e HTTP independente; estado final `needs-human`, seguido de triagem assistida |
 | [/oc por comentário](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39540969370) | Faixa de preço, 49 testes Java e aceitação Docker/HTTP antes da [PR #14](https://github.com/lucasnscr/issue-to-pr-ai/pull/14) |
 | [@claude por comentário](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39542150017) | Ordenação, 67 testes Java e aceitação Docker/HTTP antes da [PR #17](https://github.com/lucasnscr/issue-to-pr-ai/pull/17) |
-| Scripts de autorização, política, revisão e publicação | 62 testes Node aprovados |
+| Scripts de autorização, política, revisão, correção e publicação | 97 testes Node aprovados no commit atual de referência |
 | [Kubernetes na CI](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39544001615) | 9 critérios com PostgreSQL/PVC, HTTP e persistência após substituir os Pods da API e do banco |
 | Kubernetes local na aplicação com ordenação | 9 critérios e suites HTTP independentes de smoke, categoria, preço e ordenação aprovados no commit `3599e2a4baa681cd7afe58644b2bc5ae8b3dc063` |
 | [Revisão real](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39542895407) | Inferência com ferramentas negadas e comentário associado ao SHA, sem aprovação automática |
 | [Idempotência real](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39544635495) | Workflow aprovado, agente ignorado porque o mesmo SHA já tinha comentário. Nenhuma nova inferência iniciada |
 
-As gerações registraram estimativas de USD 0.52553265 (OpenCode) e USD 0.743346 (Claude Code), com tokens e cache discriminados. São estimativas do cliente, não faturas. Consumo ausente em falhas permanece indisponível.
+As implementações por comentário acima registraram estimativas de USD 0.52553265 (OpenCode) e USD 0.743346 (Claude Code), com tokens e cache discriminados.
+O laboratório posterior do ciclo somou USD 0.53927370 em quatro revisões e duas correções.
+São estimativas do cliente, não faturas. Consumo ausente em falhas permanece indisponível.
+
+No teste do ciclo, 26 produtos reproduziram o truncamento antes da primeira correção; o mesmo
+banco retornou todas as categorias depois. Uma prova final usou 30 produtos, incluindo quatro
+inseridos por SQL. Os dois testes de regressão do agente falharam ao restaurar suas versões
+defeituosas e passaram com as correções. O estado `needs-human` foi preservado no acompanhamento;
+a última revisão não foi uma liberação automática. Os resultados, SHAs e a triagem estão no
+[relatório do laboratório](validacao-engineering-loop.md).
 
 A revisão real mostrou hipóteses equivocadas sobre código fora do diff. O contexto foi ampliado com trechos da base confiável. A execução `39544449626` gerou/publicou a revisão e registrou uso, mas um evento concorrente cancelou o workflow após essas etapas. A configuração final serializa revisões sem cancelar uma inferência em andamento. As conclusões continuam consultivas, e os testes/inspeção da base são necessários para avaliar cada achado.
 
@@ -24,6 +37,9 @@ A aplicação com ordenação passou pelos filtros combinados, erros 400 e desem
 A proteção da main exige PR e checks, inclusive para administrador, e bloqueia force push/exclusão. O laboratório exige zero aprovações adicionais porque há um mantenedor. Estes merges foram autorizados explicitamente pelo usuário e executados pelo Codex, sem alegar revisão técnica humana independente.
 
 Cursor está documentado como alternativa e não foi autenticado. vLLM, ARC e enforcement de NetworkPolicy exigem ambiente próprio e permanecem sem teste real. Integrações internas de IAM/SIEM/faturamento dependem das equipes responsáveis. Veja [governança](governance.md), [Kubernetes](kubernetes-verification.md) e [Cursor](cursor.md).
+Para adotar o processo, consulte o [modelo de trabalho](modelo-de-trabalho.md). Template com
+bootstrap, check próprio de liberação, painel e quotas compartilhadas constam como propostas
+no [roadmap](roadmap.md).
 
 # Snapshot histórico de 20/10/2026
 
