@@ -1,0 +1,48 @@
+name: AI reviewer evaluation
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai-reviewer-evaluation
+  cancel-in-progress: false
+jobs:
+  evaluate:
+    if: >-
+      vars.AI_ENABLED == 'true' && vars.AI_REVIEW_ENABLED == 'true' &&
+      github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MODEL: ${{ vars.REVIEW_MODEL || 'anthropic/claude-sonnet-4-6' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Authorize manual evaluation
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+              ...context.repo, username: context.actor });
+            if (!['write', 'maintain', 'admin'].includes(data.permission)) {
+              throw new Error('Write access is required for a paid evaluation.');
+            }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Install pinned OpenCode
+        run: npm install --global opencode-ai@1.19.3
+      - name: Evaluate trusted synthetic cases with the real provider
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VLLM_BASE_URL: ${{ vars.VLLM_BASE_URL }}
+          VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+        run: node scripts/evaluate-reviews.mjs --live --output artifacts/reviewer-evaluation/report.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: reviewer-evaluation-${{ github.run_id }}
+          path: artifacts/reviewer-evaluation/
+          retention-days: 14

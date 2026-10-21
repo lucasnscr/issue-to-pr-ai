@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "dataset": "evals/reviewer/v1/dataset.json",
+  "maxLiveCases": 6,
+  "maxEstimatedBudgetUsd": 2,
+  "opencodeVersion": "1.19.3"
+}

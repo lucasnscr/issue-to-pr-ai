@@ -1,6 +1,7 @@
 # Roadmap para um modelo reutilizável de trabalho
 
-Estas são **propostas**, sem implementação ou ativação nesta entrega. A prioridade parte
+R1 possui avaliador, dataset e workflow implementados; veja o [guia de avaliação](reviewer-evaluation.md).
+As demais linhas abaixo são propostas. A prioridade parte
 do [laboratório real](validacao-engineering-loop.md): duas correções funcionaram, mas
 pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa recomendada
 é tornar a decisão de entrega mais confiável e a adoção mais reproduzível.
@@ -10,7 +11,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 | Já implementado | Próximo problema a resolver |
 |---|---|
 | Issue autorizada → código/testes → draft PR | Adaptação ainda específica ao catálogo Java |
-| Revisão estruturada com contexto da base | Falsos positivos e hipóteses sobre mudanças futuras |
+| Revisão estruturada e avaliação versionada | Reduzir falsos positivos e hipóteses sobre mudanças futuras com evidências |
 | Duas correções com reserva persistida e push isolado | Triagem manual e ausência de check próprio de liberação do ciclo |
 | Telemetria e artefatos por execução | Ausência de consolidação durável por tarefa/equipe |
 | Limites observados por execução/PR | Ausência de quota financeira global integrada ao provedor |
@@ -20,7 +21,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 
 | ID | Prioridade | Feature | Critério mínimo de aceite | Depende de |
 |---|---|---|---|---|
-| R1 | P0 | Avaliação reproduzível da qualidade do revisor | Conjunto rotulado de bugs reais, patches corretos e contexto omitido; medir achados confirmados, falsos positivos e defeitos não detectados por versão/modelo | Histórico atual e curadoria do mantenedor |
+| R1 | Implementado | Avaliação reproduzível da qualidade do revisor | Dataset de seis casos, métricas, proveniência, modo offline e workflow real limitado; resultados reais devem ser conferidos por execução | [Guia e limites](reviewer-evaluation.md) |
 | R2 | P0 | Triagem rastreável e check de liberação do ciclo | Classificar achados por pessoa autorizada; check do SHA atual permanece pendente/bloqueado enquanto houver decisão necessária; novo SHA invalida decisões antigas | Identidade dos achados e política de triagem; R1 orienta os casos de teste |
 | R3 | P1 | Template e bootstrap verificável | Novo repositório executa CI sem IA, detecta configuração ausente e completa uma tarefa de exemplo realmente nova, seguindo instruções reproduzíveis | Modelo de trabalho e perfil atual |
 | R4 | P1 | Workflows reutilizáveis e adaptadores por stack | Dois repositórios consomem a mesma versão de orquestração; um segundo perfil troca build/testes/caminhos sem alterar controles de publicação | R3 e contrato de entradas/saídas |

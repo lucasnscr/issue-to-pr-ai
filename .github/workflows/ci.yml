@@ -22,6 +22,8 @@ jobs:
       - name: Verify a clean checkout
         run: git diff --exit-code
       - run: node --test scripts/tests/*.test.cjs
+      - name: Validate offline review evaluation example
+        run: node scripts/evaluate-reviews.mjs --responses evals/reviewer/v1/example-responses.json
       - name: Validate configuration
         run: |
           python3 -m venv .venv

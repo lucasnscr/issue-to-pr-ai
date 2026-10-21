@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "datasetVersion": 1,
+  "kind": "synthetic-example-not-model-performance",
+  "responses": [
+    {
+      "caseId": "pagination-truncates",
+      "review": {
+        "summary": "Exemplo sintético para demonstrar o cálculo, sem chamada a modelo.",
+        "findings": [
+          {
+            "priority": "P1",
+            "title": "Paginação omite categorias",
+            "body": "O limite de 20 produtos trunca categorias além da primeira página.",
+            "path": "apps/catalog-api/src/main/java/dev/continuousai/catalog/product/ProductService.java",
+            "line": 2
+          }
+        ]
+      }
+    },
+    {
+      "caseId": "raw-category-duplicates",
+      "review": {
+        "summary": "Exemplo sintético para demonstrar o cálculo, sem chamada a modelo.",
+        "findings": [
+          {
+            "priority": "P2",
+            "title": "SQL permite variantes duplicadas",
+            "body": "Inserção direta no banco permite Tech e TECH; a consulta não normaliza nem deduplica variantes de caixa.",
+            "path": "apps/catalog-api/src/main/java/dev/continuousai/catalog/product/ProductRepository.java",
+            "line": 2
+          }
+        ]
+      }
+    },
+    {
+      "caseId": "entity-normalization-exists",
+      "review": {
+        "summary": "Exemplo sintético para demonstrar o cálculo, sem chamada a modelo.",
+        "findings": []
+      }
+    },
+    {
+      "caseId": "selected-expression-ordering",
+      "review": {
+        "summary": "Exemplo sintético para demonstrar o cálculo, sem chamada a modelo.",
+        "findings": [
+          {
+            "priority": "P2",
+            "title": "Hipótese sobre provedor futuro",
+            "body": "Um provedor JPA futuro poderia rejeitar a expressão, embora Hibernate/PostgreSQL atual funcione.",
+            "path": "apps/catalog-api/src/main/java/dev/continuousai/catalog/product/ProductRepository.java",
+            "line": 2
+          }
+        ]
+      }
+    },
+    {
+      "caseId": "optional-description",
+      "review": {
+        "summary": "Exemplo sintético para demonstrar o cálculo, sem chamada a modelo.",
+        "findings": []
+      }
+    },
+    {
+      "caseId": "unchanged-test-cleanup",
+      "review": {
+        "summary": "Exemplo sintético para demonstrar o cálculo, sem chamada a modelo.",
+        "findings": []
+      }
+    }
+  ]
+}
