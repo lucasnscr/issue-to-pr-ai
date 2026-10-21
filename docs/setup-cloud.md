@@ -42,7 +42,7 @@ Falhas de teste bloqueiam a publicação. Não existe correção automática por
 
 ## Revisão real
 
-Em PRs do próprio repositório, marcar uma draft como pronta dispara revisão quando as variáveis estão ativas.
+Em PRs do próprio repositório com label `ai:ready`, marcar uma draft como pronta dispara revisão quando as variáveis estão ativas.
 O publisher também pode solicitar revisão da draft por dispatch autorizado na branch padrão:
 
 ```sh
@@ -51,6 +51,7 @@ gh workflow run ai-review.yml --ref main -f pull_request=NUMERO
 
 O modelo recebe apenas o patch completo, com ferramentas negadas. Não executa o código da PR.
 A publicação verifica novamente o SHA e atualiza seu comentário para evitar duplicação.
+Um commit que já possui revisão do bot não inicia outra inferência, inclusive ao sair de draft.
 Patches binários, incompletos ou acima de 32 mil bytes exigem revisão humana.
 O comentário da IA é consultivo e não representa aprovação.
 

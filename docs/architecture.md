@@ -63,8 +63,9 @@ documentação, executa testes com PostgreSQL real, faz build Docker e verifica 
 antes de qualquer push do código gerado. Um job separado recebe o patch validado e a credencial
 de escrita, publica a branch `ai/issue-<número>-<run>` e abre a PR em draft vinculada à issue.
 O artefato `live-implementation`, os relatórios e a PR registram o que foi validado.
-Esse diagnóstico é distinto do caminho nativo `opencode github run`; validar um deles não
-comprova o outro. O [guia do GitHub](setup-cloud.md#teste-real-antes-do-primeiro-merge) descreve a execução.
+Na primeira versão, esse diagnóstico era distinto do caminho nativo `opencode github run`.
+O fluxo atual por comentário adota a mesma separação entre geração e publicação, generalizada
+para outras issues e para Claude Code. O [guia do GitHub](setup-cloud.md) descreve a execução atual.
 
 ## Revisão separada
 
@@ -77,7 +78,8 @@ A publicação ocorre depois, em uma etapa com token. Um SHA obsoleto é descart
 Reexecuções atualizam o comentário para o mesmo SHA, evitando comentários duplicados.
 PRs de forks são ignoradas. Eventos automáticos ignoram drafts; um dispatch autorizado na branch
 padrão permite revisar também uma draft. O publisher usa esse dispatch para a PR recém-gerada.
-Marcar uma PR como pronta também dispara revisão.
+Marcar uma PR com label `ai:ready` como pronta também dispara revisão. O opt-in evita chamadas
+pagas para PRs sem autorização, como atualizações automáticas de dependências.
 Patches incompletos, binários ou acima de 32 mil bytes falham explicitamente e precisam de revisão humana.
 Uma execução bem-sucedida indica que o comentário foi produzido, não que o código foi aprovado.
 
