@@ -43,6 +43,10 @@ curl --fail 'http://localhost:8080/api/products?page=0&size=10'
 
 # Filtrar por categoria (case-insensitive, remove espaços externos)
 curl --fail 'http://localhost:8080/api/products?category=books'
+
+# Filtrar por faixa de preço (limites inclusivos, combinável com category)
+curl --fail 'http://localhost:8080/api/products?minPrice=10.00&maxPrice=99.99'
+curl --fail 'http://localhost:8080/api/products?category=books&minPrice=50.00'
 ```
 
 O Compose usa credenciais locais de demonstração e publica portas apenas em `127.0.0.1`.
@@ -113,6 +117,7 @@ O custo registrado é uma estimativa do runtime, separado do faturamento do prov
 | POST | `/api/products` | Cria produto; `201` e `Location` |
 | GET | `/api/products?page=0&size=20` | Lista paginada, ordenada por criação e ID |
 | GET | `/api/products?category=books` | Lista filtrada por categoria (opcional, case-insensitive) |
+| GET | `/api/products?minPrice=10.00&maxPrice=99.99` | Lista filtrada por faixa de preço (limites inclusivos, combinável com `category`) |
 | GET | `/api/products/{id}` | Consulta por UUID |
 | PUT | `/api/products/{id}` | Substitui campos editáveis |
 | DELETE | `/api/products/{id}` | Exclui; `204` |
@@ -122,6 +127,8 @@ Nome e categoria são obrigatórios; categoria é normalizada para minúsculas. 
 Preço: de `0.01` a `9999999999.99`, com até duas casas decimais. Páginas começam em zero e têm tamanho de 1 a 100.
 Filtro `category`: opcional; a comparação ignora maiúsculas/minúsculas e remove espaços externos.
 Categoria inexistente retorna página vazia. Parâmetro presente mas em branco retorna `400`.
+Filtros `minPrice` e `maxPrice`: opcionais, independentes e combináveis entre si e com `category`.
+Limites são inclusivos. Valores negativos, com mais de duas casas decimais, ou `minPrice > maxPrice` retornam `400`.
 Paginação e totais são calculados somente sobre os produtos filtrados.
 Erros usam `application/problem+json`: `400` para entrada inválida, `404` para produto ausente,
 `409` para SKU duplicado. A API é uma aplicação de demonstração sem autenticação de usuários.

@@ -243,6 +243,156 @@ class ProductApiIT {
         assertThat(body.get("totalElements").asInt()).isEqualTo(2);
     }
 
+    // ── Price range filter tests ─────────────────────────────────────────────
+
+    @Test
+    void filtersByMinPriceOnlyIncludesProductsAtOrAbove() {
+        create("CHEAP-01", "Cheap",   "9.99");
+        create("MID-01",   "Mid",    "50.00");
+        create("EXP-01",   "Expensive", "199.99");
+
+        JsonNode body = http.getForObject("/api/products?minPrice={min}", JsonNode.class, "50.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+        body.get("content").forEach(p ->
+                assertThat(new BigDecimal(p.get("price").asText()))
+                        .isGreaterThanOrEqualTo(new BigDecimal("50.00")));
+    }
+
+    @Test
+    void filtersByMaxPriceOnlyIncludesProductsAtOrBelow() {
+        create("CHEAP-01", "Cheap",      "9.99");
+        create("MID-01",   "Mid",        "50.00");
+        create("EXP-01",   "Expensive", "199.99");
+
+        JsonNode body = http.getForObject("/api/products?maxPrice={max}", JsonNode.class, "50.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+        body.get("content").forEach(p ->
+                assertThat(new BigDecimal(p.get("price").asText()))
+                        .isLessThanOrEqualTo(new BigDecimal("50.00")));
+    }
+
+    @Test
+    void filtersByPriceRangeWithBothLimitsInclusive() {
+        create("CHEAP-01", "Cheap",      "9.99");
+        create("LOW-01",   "Low",       "10.00");
+        create("MID-01",   "Mid",       "55.00");
+        create("HIGH-01",  "High",     "100.00");
+        create("EXP-01",   "Expensive","199.99");
+
+        JsonNode body = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}", JsonNode.class, "10.00", "100.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(3);
+        body.get("content").forEach(p -> {
+            BigDecimal price = new BigDecimal(p.get("price").asText());
+            assertThat(price).isGreaterThanOrEqualTo(new BigDecimal("10.00"));
+            assertThat(price).isLessThanOrEqualTo(new BigDecimal("100.00"));
+        });
+    }
+
+    @Test
+    void priceRangeEqualLimitsIncludesExactMatch() {
+        create("EXACT-01", "Exact", "49.90");
+        create("OTHER-01", "Other", "49.91");
+
+        JsonNode body = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}", JsonNode.class, "49.90", "49.90");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(1);
+        assertThat(body.at("/content/0/price").decimalValue())
+                .isEqualByComparingTo(new BigDecimal("49.90"));
+    }
+
+    @Test
+    void priceRangeEmptyIntervalReturnsEmptyPage() {
+        create("BOOK-01", "Book", "100.00");
+
+        JsonNode body = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}", JsonNode.class, "200.00", "300.00");
+        assertThat(body.get("totalElements").asInt()).isZero();
+        assertThat(body.get("content").isEmpty()).isTrue();
+    }
+
+    @Test
+    void priceRangeCombinesWithCategoryFilter() {
+        createWithCategory("BOOK-01", "Cheap Book",    "10.00", "books");
+        createWithCategory("BOOK-02", "Expensive Book","200.00","books");
+        createWithCategory("TECH-01", "Tech",          "50.00", "tech");
+
+        JsonNode body = http.getForObject(
+                "/api/products?category={cat}&minPrice={min}&maxPrice={max}",
+                JsonNode.class, "books", "5.00", "50.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(1);
+        assertThat(body.at("/content/0/sku").asText()).isEqualTo("BOOK-01");
+    }
+
+    @Test
+    void priceRangeRespectsPagination() {
+        create("P-01", "Product 1",  "10.00");
+        create("P-02", "Product 2",  "20.00");
+        create("P-03", "Product 3",  "30.00");
+        create("P-04", "Product 4", "200.00");
+
+        JsonNode page0 = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}&page=0&size=2",
+                JsonNode.class, "10.00", "100.00");
+        JsonNode page1 = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}&page=1&size=2",
+                JsonNode.class, "10.00", "100.00");
+
+        assertThat(page0.get("totalElements").asInt()).isEqualTo(3);
+        assertThat(page0.get("totalPages").asInt()).isEqualTo(2);
+        assertThat(page0.get("content").size()).isEqualTo(2);
+        assertThat(page1.get("content").size()).isEqualTo(1);
+        assertThat(page0.at("/content/0/id")).isNotEqualTo(page1.at("/content/0/id"));
+    }
+
+    @Test
+    void listWithoutPriceFiltersPreservesAllProducts() {
+        create("BOOK-01", "Book",  "10.00");
+        create("TECH-01", "Tech", "200.00");
+
+        JsonNode body = http.getForObject("/api/products", JsonNode.class);
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-0.01", "-1", "-100"})
+    void rejectsNegativeMinPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?minPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-0.01", "-1", "-100"})
+    void rejectsNegativeMaxPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?maxPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.001", "10.999", "0.001"})
+    void rejectsMoreThanTwoDecimalPlacesInMinPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?minPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.001", "10.999", "0.001"})
+    void rejectsMoreThanTwoDecimalPlacesInMaxPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?maxPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void rejectsMinPriceGreaterThanMaxPrice() {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?minPrice=100.00&maxPrice=50.00", JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
     private ResponseEntity<JsonNode> create(String sku, String name, String price) {
         return http.postForEntity("/api/products", request(sku, name, price), JsonNode.class);
     }
