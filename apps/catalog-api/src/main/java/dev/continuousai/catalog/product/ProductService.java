@@ -68,12 +68,7 @@ public class ProductService {
     }
 
     public List<String> listCategories() {
-        return repository.findAll(PageRequest.of(0, 20, Sort.by("category", "id")))
-                .getContent().stream()
-                .map(Product::getCategory)
-                .distinct()
-                .sorted()
-                .toList();
+        return repository.findDistinctCategories();
     }
 
     public ProductResponse find(UUID id) {

@@ -60,6 +60,20 @@ class ProductCategoriesIT {
     }
 
     @Test
+    void returnsAllCategoriesWhenCatalogExceedsDefaultPageSize() {
+        // Create 21 products each with a distinct category to exceed the former hard limit of 20.
+        // Before the fix, the 21st category was silently omitted.
+        for (int i = 1; i <= 21; i++) {
+            create(String.format("SKU-%02d", i), String.format("category-%02d", i));
+        }
+        String[] categories = http.getForObject("/api/products/categories", String[].class);
+        assertThat(categories).hasSize(21);
+        for (int i = 1; i <= 21; i++) {
+            assertThat(categories).contains(String.format("category-%02d", i));
+        }
+    }
+
+    @Test
     void removesCategoryOnlyAfterDeletingItsLastProduct() {
         URI first = create("CAT-01", "tech");
         URI second = create("CAT-02", "TECH");
