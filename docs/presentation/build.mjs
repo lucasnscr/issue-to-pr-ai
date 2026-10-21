@@ -11,14 +11,14 @@ const { Presentation, PresentationFile } = await import(pathToFileURL(path.join(
 const { resolvePresentationFont, finalizePresentation } = await import(pathToFileURL(path.join(skillDir, 'container_tools/artifact_tool_utils.mjs')).href);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const evidence = JSON.parse(await fs.readFile(path.join(here, 'evidence.json'), 'utf8'));
-const workspaceDir = process.env.PRESENTATION_BUILD_DIR || '/tmp/issue-to-pr-b3-presentation';
+const workspaceDir = process.env.PRESENTATION_BUILD_DIR || '/tmp/issue-to-pr-presentation';
 const stagingDir = path.join(workspaceDir, 'build');
 const outputDir = path.join(workspaceDir, 'output');
 await fs.mkdir(stagingDir, { recursive: true });
 await fs.mkdir(outputDir, { recursive: true });
 const revision = process.env.PRESENTATION_REVISION || 'v1';
-const finalPptx = path.join(outputDir, `issue-to-pr-ai-b3-${revision}.pptx`);
-const finalPdf = path.join(outputDir, `issue-to-pr-ai-b3-${revision}.pdf`);
+const finalPptx = path.join(outputDir, `issue-to-pr-ai-${revision}.pptx`);
+const finalPdf = path.join(outputDir, `issue-to-pr-ai-${revision}.pdf`);
 const font = resolvePresentationFont({fontFamily:'Arial'});
 const palette = { paper:'#F6F7F8', ink:'#142B45', muted:'#536778', blue:'#005DAA', teal:'#007C83', white:'#FFFFFF', rule:'#CED8E0', amber:'#A25B00' };
 const presentation = Presentation.create({ slideSize: { width: 1280, height: 720 } });
@@ -60,17 +60,16 @@ const src = {
   cursorCloud:'https://cursor.com/docs/cloud-agent',
   cursorAPI:'https://cursor.com/docs/cloud-agent/api/endpoints',
   cursorPrivacy:'https://cursor.com/data-use',
-  cursorSecurity:'https://cursor.com/security',
-  b3:'https://developers.b3.com.br/'
+  cursorSecurity:'https://cursor.com/security'
 };
 
 {
   const s=base(null,1,{dark:true});
   txt(s,'issue-to-pr-ai',72,95,1136,110,88,palette.white,true);
   txt(s,'Desenvolvimento com IA\ne validação independente',72,260,1050,150,52,palette.white,true);
-  txt(s,'Prova de conceito para discussão entre equipes da B3',72,470,1060,58,27,'#BBD3E5');
+  txt(s,'Prova de conceito para equipes de engenharia',72,470,1060,58,27,'#BBD3E5');
   txt(s,'Lucas Silva\n22 de outubro de 2026',72,578,900,58,22,'#BBD3E5');
-  note(s,'0:00–0:40','Esta é uma prova de conceito pessoal, com código público e dados fictícios. A proposta é discutir como agentes de código entram em um processo de engenharia com critérios verificáveis. Os casos para a B3 são sugestões para avaliação das equipes, sem representar adoção ou aprovação interna.',[src.repo]);
+  note(s,'0:00–0:40','Esta é uma prova de conceito pessoal, com código público e dados fictícios. A proposta é discutir como agentes de código entram em um processo de engenharia com critérios verificáveis. Os casos de uso são sugestões de piloto para avaliação das equipes.',[src.repo]);
 }
 {
   const s=base('Tarefas pequenas e verificáveis',2);
@@ -91,7 +90,7 @@ const src = {
   txt(s,'API Java 21 + Spring Boot',610,230,600,65,38,palette.blue,true);
   txt(s,'Validação e contrato OpenAPI\nPostgreSQL + migrations Flyway\nImagem e execução com Docker',610,310,580,165,29);
   txt(s,evidence.current.fullApplication.detail,72,570,1120,65,25,palette.muted);
-  note(s,'2:40–3:30','Mostrar primeiro o comportamento observável da aplicação pelo Swagger ou por chamadas HTTP. A aplicação completa deste demo compreende API, PostgreSQL e infraestrutura, sem uma interface web própria. O diagnóstico histórico validou a API e o banco reais. A demonstração não usa qualquer conexão com dados ou sistemas da B3.',[src.repo,...[evidence.current.fullApplication.url].filter(Boolean)]);
+  note(s,'2:40–3:30','Mostrar primeiro o comportamento observável da aplicação pelo Swagger ou por chamadas HTTP. Esta apresentação enfatiza a API, PostgreSQL e infraestrutura. O diagnóstico histórico validou a API e o banco reais. A demonstração não usa conexões com dados ou sistemas corporativos.',[src.repo,...[evidence.current.fullApplication.url].filter(Boolean)]);
 }
 {
   const s=base('Os testes bloquearam a primeira tentativa',5,{subtitle:'A segunda tentativa usou instruções corrigidas sobre as falhas'});
@@ -100,9 +99,9 @@ const src = {
   note(s,'3:30–4:50','A primeira chamada autenticada ao modelo gerou uma implementação, mas seis testes de integração falharam. A pipeline bloqueou a publicação. A análise das falhas gerou instruções corrigidas para a segunda tentativa. A execução seguinte passou e originou a PR #3. Os 60 testes pertencem à CI dessa PR: 28 Java e 32 Node. Isso não mede qualidade universal e não demonstra correção autônoma. O registro histórico levou cerca de seis minutos para geração e validação.',[src.first,src.pass,src.pr]);
 }
 {
-  const s=base('Casos propostos para equipes da B3',6,{subtitle:'Hipóteses de piloto em laboratório, sujeitas à avaliação interna'});
+  const s=base('Casos de uso em equipes de engenharia',6,{subtitle:'Hipóteses de piloto em laboratório, sujeitas à avaliação interna'});
   table(s,[['Caso','Exemplo de issue','Aceite verificável'],['Contratos de APIs','Filtro opcional e validação','Compatibilidade + erros + OpenAPI'],['Integrações','Regressão em serialização','Fixture fictícia + teste do defeito'],['Dependências','Atualização de uma biblioteca','Build + testes + análise do diff'],['Documentação','Exemplo de SDK executável','Exemplo validado contra contrato']],{top:223,height:386,widths:[260,430,446],size:24});
-  note(s,'4:50–6:10','O portal público B3 for Developers disponibiliza documentação de APIs B2B. A partir desse contexto público, proponho discutir tarefas de engenharia que tenham escopo e aceite claros. Nenhuma linha desta tabela descreve um projeto interno existente. Para um primeiro piloto, usar repositório de laboratório e dados sintéticos. Precisão de domínio e decisão de entrega continuam com as pessoas responsáveis.',[src.b3,src.repo]);
+  note(s,'4:50–6:10','Equipes que mantêm APIs e integrações podem avaliar tarefas de engenharia com escopo e aceite claros. A tabela contém hipóteses de piloto, sem descrever projetos internos. Para um primeiro piloto, usar repositório de laboratório e dados sintéticos. Precisão de domínio e decisão de entrega continuam com as pessoas responsáveis.',[src.repo]);
 }
 {
   const s=base('Exemplo de piloto: faixa de preço',7);
@@ -145,7 +144,7 @@ const src = {
   txt(s,'Proposta: duas semanas e cerca de dez issues pequenas',72,315,1110,80,30,'#BBD3E5');
   txt(s,'Tempo de revisão e intervenções\nFalhas e retrabalho\nFalsos positivos nos comentários da IA\nCusto estimado por tarefa concluída',72,425,1110,150,31,palette.white);
   txt(s,'Escala condicionada às evidências e à avaliação interna',72,610,1110,45,26,'#BBD3E5');
-  note(s,'13:20–15:00','A proposta de uma equipe, duas semanas e dez issues é um desenho de piloto, não um resultado. Comparar tarefas equivalentes com e sem agente e registrar falhas, retrabalho, custo e esforço de revisão humana. O objetivo da conversa é escolher um caso pequeno e um responsável pelo piloto. O projeto ainda não fornece evidência para prometer uma porcentagem de ganho de produtividade. Reservar o último minuto para discussão.',[src.repo,src.b3]);
+  note(s,'13:20–15:00','A proposta de uma equipe, duas semanas e dez issues é um desenho de piloto, não um resultado. Comparar tarefas equivalentes com e sem agente e registrar falhas, retrabalho, custo e esforço de revisão humana. O objetivo da conversa é escolher um caso pequeno e um responsável pelo piloto. O projeto ainda não fornece evidência para prometer uma porcentagem de ganho de produtividade. Reservar o último minuto para discussão.',[src.repo]);
 }
 
 for (const [i,slide] of presentation.slides.items.entries()) {

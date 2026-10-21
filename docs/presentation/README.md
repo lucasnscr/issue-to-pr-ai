@@ -1,16 +1,16 @@
-# Apresentação para discussão na B3
+# Apresentação do laboratório de desenvolvimento com IA
 
 Apresentação de 12 slides em português, com roteiro para aproximadamente 15 minutos.
-O conteúdo apresenta uma prova de conceito pessoal e propostas de piloto. Não representa adoção interna da B3.
+O conteúdo apresenta uma prova de conceito pessoal e propostas de piloto para equipes de engenharia.
 
 O PowerPoint mantém textos e tabelas editáveis. As notas dos slides contêm o roteiro e links das fontes.
 O PDF serve como cópia para projeção, com aparência preservada. O roteiro em Markdown ajuda no ensaio.
 
-- [PowerPoint editável](apresentacao-b3.pptx)
-- [PDF para projeção](apresentacao-b3.pdf)
+- [PowerPoint editável](apresentacao.pptx)
+- [PDF para projeção](apresentacao.pdf)
 - [Roteiro com notas e fontes](roteiro.md)
 
-O deck mostra propostas de uso na B3, a alternativa Cursor e os resultados reais de `/oc`,
+O deck mostra casos de uso em engenharia, a alternativa Cursor e os resultados reais de `/oc`,
 `@claude`, revisão consultiva e Kubernetes. A revisão por IA levantou hipóteses que exigiram
 checagem do código/testes, e essa limitação aparece no desenho do piloto.
 

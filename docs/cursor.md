@@ -44,7 +44,7 @@ O caminho Cloud tem seu próprio ambiente de execução. Ele exige uma avaliaç�
 O Cursor publica Privacy Mode e controles de rede/segredos para Cloud Agents.
 Privacy Mode não significa ausência de processamento remoto. A organização precisa avaliar os termos,
 provedores, retenção e acesso que se aplicam ao plano escolhido. Não existe validação de política
-interna da B3 neste repositório.
+corporativa neste repositório.
 
 Antes de um piloto, escolha dados sintéticos e um repositório de laboratório. Registre ferramenta,
 modelo efetivamente retornado, duração, intervenção humana e resultado dos testes. Registre consumo

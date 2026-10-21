@@ -1,6 +1,6 @@
 # Demonstração de 15 minutos
 
-Use apenas o catálogo público com dados fictícios. As sugestões para B3 são propostas para discussão, sem aprovação ou implantação interna.
+Use apenas o catálogo público com dados fictícios. Os casos propostos são hipóteses de piloto de engenharia, sem implantação corporativa.
 
 ## Preparação
 
@@ -18,7 +18,7 @@ Use apenas o catálogo público com dados fictícios. As sugestões para B3 são
 | 2–5 min | Gate de permissão, inferência sem token de publicação e validação independente |
 | 5–8 min | Primeira tentativa histórica bloqueada pelos testes e segunda tentativa guiada aprovada |
 | 8–11 min | API completa com PostgreSQL/Docker, PR e revisão consultiva vinculada ao SHA |
-| 11–13 min | Casos propostos B3 e Cursor como opção de agente |
+| 11–13 min | Casos de uso em engenharia e Cursor como opção de agente |
 | 13–15 min | Limites, custo estimado, piloto e perguntas |
 
 O escopo completo é API, banco e infraestrutura, sem interface web própria. O Swagger é o explorador da API.
