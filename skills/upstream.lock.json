@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "sources": {
+    "superpowers": {
+      "repository": "obra/superpowers",
+      "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+      "license": "MIT",
+      "files": [
+        {
+          "upstreamPath": "LICENSE",
+          "path": "skills/upstream/superpowers/LICENSE",
+          "sha256": "a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400"
+        },
+        {
+          "upstreamPath": "skills/brainstorming/SKILL.md",
+          "path": "skills/upstream/superpowers/skills/brainstorming/SKILL.md",
+          "sha256": "61a7ef918652108c76a3fd01e02dd92d39996c6b46d4cb2819cbd03f6c45e46a"
+        },
+        {
+          "upstreamPath": "skills/writing-plans/SKILL.md",
+          "path": "skills/upstream/superpowers/skills/writing-plans/SKILL.md",
+          "sha256": "a6c67c1900064347c2a329990dd3c555657c51c3ec53b259a08aa01a2c26139a"
+        },
+        {
+          "upstreamPath": "skills/test-driven-development/SKILL.md",
+          "path": "skills/upstream/superpowers/skills/test-driven-development/SKILL.md",
+          "sha256": "64b03fce4aee5a97a93160cea8111f3ba13a17b7c001db4bd5836d67fd10705d"
+        },
+        {
+          "upstreamPath": "skills/systematic-debugging/SKILL.md",
+          "path": "skills/upstream/superpowers/skills/systematic-debugging/SKILL.md",
+          "sha256": "51c6435d98c83c42c96ba7c35725a0b2c376cd487fb1a4e6bd0ddbe7e33ef202"
+        },
+        {
+          "upstreamPath": "skills/verification-before-completion/SKILL.md",
+          "path": "skills/upstream/superpowers/skills/verification-before-completion/SKILL.md",
+          "sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
+        },
+        {
+          "upstreamPath": "skills/receiving-code-review/SKILL.md",
+          "path": "skills/upstream/superpowers/skills/receiving-code-review/SKILL.md",
+          "sha256": "091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
+        }
+      ]
+    },
+    "mattpocock": {
+      "repository": "mattpocock/skills",
+      "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
+      "license": "MIT",
+      "files": [
+        {
+          "upstreamPath": "LICENSE",
+          "path": "skills/upstream/mattpocock/LICENSE",
+          "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5"
+        },
+        {
+          "upstreamPath": "skills/productivity/grill-me/SKILL.md",
+          "path": "skills/upstream/mattpocock/skills/productivity/grill-me/SKILL.md",
+          "sha256": "caaf8b8de1684f96e26b28f3c29189db5c89cce4b73e1c93d86164f66ef88637"
+        },
+        {
+          "upstreamPath": "skills/productivity/grilling/SKILL.md",
+          "path": "skills/upstream/mattpocock/skills/productivity/grilling/SKILL.md",
+          "sha256": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15"
+        },
+        {
+          "upstreamPath": "skills/engineering/to-spec/SKILL.md",
+          "path": "skills/upstream/mattpocock/skills/engineering/to-spec/SKILL.md",
+          "sha256": "43ad9cf318e5e7d3d1fa360253a37021796dc87a0c2e595ad262661a10f85088"
+        },
+        {
+          "upstreamPath": "skills/engineering/tdd/SKILL.md",
+          "path": "skills/upstream/mattpocock/skills/engineering/tdd/SKILL.md",
+          "sha256": "5505d25bbaa8fc14a79e4d20163936958992a2995b7f1dd1d6197edc9ed722e0"
+        }
+      ]
+    },
+    "graphify": {
+      "repository": "Graphify-Labs/graphify",
+      "commit": "847a93f3cab5e2c82ea9170014b21cd2c52a4417",
+      "license": "Apache-2.0",
+      "files": [
+        {
+          "upstreamPath": "LICENSE",
+          "path": "skills/upstream/graphify/LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        {
+          "upstreamPath": "NOTICE",
+          "path": "skills/upstream/graphify/NOTICE",
+          "sha256": "3448ea175bba09f6fed8a743000139fb4c7112de83f164355b5540b158576621"
+        },
+        {
+          "upstreamPath": "graphify/skill-opencode.md",
+          "path": "skills/upstream/graphify/graphify/skill-opencode.md",
+          "sha256": "8f2cdebc77393e9084991eec5923474e138fca009028ee3d1e6bc175827f91a3"
+        }
+      ]
+    }
+  }
+}

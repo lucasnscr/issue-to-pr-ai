@@ -1,0 +1,30 @@
+name: Prepare selected Graphify context
+description: Parse trusted code locally only when the approved skill selection needs Graphify
+inputs:
+  manifest:
+    description: Trusted phase skill manifest
+    required: true
+  target:
+    description: Task file, review directory, correction plan or specification directory
+    required: true
+  kind:
+    description: implementation, review, correction or specification
+    required: true
+runs:
+  using: composite
+  steps:
+    - id: selection
+      shell: bash
+      env:
+        SKILL_MANIFEST: ${{ inputs.manifest }}
+      run: node scripts/attach-skill-graph.mjs --check --manifest "$SKILL_MANIFEST" >> "$GITHUB_OUTPUT"
+    - if: steps.selection.outputs.enabled == 'true'
+      shell: bash
+      env:
+        SKILL_MANIFEST: ${{ inputs.manifest }}
+        GRAPH_TARGET: ${{ inputs.target }}
+        GRAPH_KIND: ${{ inputs.kind }}
+      run: |
+        python3 -m venv "$RUNNER_TEMP/skill-graphify"
+        "$RUNNER_TEMP/skill-graphify/bin/pip" install --disable-pip-version-check 'graphifyy==0.9.93'
+        node scripts/attach-skill-graph.mjs --manifest "$SKILL_MANIFEST" --target "$GRAPH_TARGET" --kind "$GRAPH_KIND" --command "$RUNNER_TEMP/skill-graphify/bin/graphify"

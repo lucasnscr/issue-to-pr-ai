@@ -81,7 +81,7 @@ test('prepared frontend-sized context reaches the tool-denied runner without tru
   });
 });
 
-test('runner accepts its exact shared byte limit and rejects oversized UTF-8 before inference', async () => {
+test('runner accounts for trusted skills in the shared byte limit and rejects oversized UTF-8 before inference', async () => {
   const { runReview } = await load();
   await workspace(async directory => {
     let calls = 0;
@@ -90,7 +90,8 @@ test('runner accepts its exact shared byte limit and rejects oversized UTF-8 bef
         calls++;
         return { status: 0, stdout: JSON.stringify({ type: 'text', part: { text: JSON.stringify({ summary: 'Revisado.', findings: [] }) } }) };
       } };
-    fs.writeFileSync(path.join(directory, 'context.txt'), 'x'.repeat(limits.maxContextBytes));
+    const skillBytes = require('../skills.cjs').bundle({ phases: ['review'] }).manifest.contextBytes;
+    fs.writeFileSync(path.join(directory, 'context.txt'), 'x'.repeat(limits.maxContextBytes - skillBytes));
     await runReview(options);
     assert.equal(calls, 1);
     fs.writeFileSync(path.join(directory, 'context.txt'), 'é'.repeat(limits.maxContextBytes / 2 + 1));

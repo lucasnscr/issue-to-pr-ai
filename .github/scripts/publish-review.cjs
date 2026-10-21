@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const report = require('./review-report.cjs');
+const skills = require('../../scripts/skills.cjs');
 
 module.exports = async ({ github, context, core }) => {
   const metadata = JSON.parse(fs.readFileSync(path.join(process.env.REVIEW_DIRECTORY, 'metadata.json'), 'utf8'));
@@ -21,7 +22,8 @@ module.exports = async ({ github, context, core }) => {
       policyDecision: usage.policy?.decision,
       review: report.validateReview(JSON.parse(fs.readFileSync('artifacts/review.json', 'utf8')), metadata.files) });
   }
-  const body = `${marker}\n${review}\n\n${envelope}\n\n---\nRevisão por IA do commit \`${metadata.sha}\`. A aprovação e o merge cabem a uma pessoa.`;
+  const audit = metadata.skills ? `Skills: ${skills.validateManifest(metadata.skills).used.map(s => `${s.id}@${s.version}`).join(', ')}. Catálogo: \`${metadata.skills.catalogHash}\`.` : '';
+  const body = `${marker}\n${review}\n\n${envelope}\n\n${audit}\n\n---\nRevisão por IA do commit \`${metadata.sha}\`. A aprovação e o merge cabem a uma pessoa.`;
   if (!review || body.length > 60000) throw new Error('Review is empty or too long to publish.');
   const comments = await github.paginate(github.rest.issues.listComments, {
     owner, repo, issue_number: metadata.number, per_page: 100,

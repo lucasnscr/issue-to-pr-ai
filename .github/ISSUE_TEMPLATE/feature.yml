@@ -26,4 +26,25 @@ body:
       placeholder: Preserve a paginação atual. Altere apenas a API e seus testes.
   - type: markdown
     attributes:
-      value: Um colaborador com escrita adiciona `ai:ready` e comenta `/oc implemente esta issue` ou `@claude implemente esta issue`.
+      value: 'Catálogo e exemplos em [docs/skills-catalog.md](https://github.com/lucasnscr/issue-to-pr-ai/blob/main/docs/skills-catalog.md). A seleção acrescenta práticas aos padrões de cada fase; não amplia permissões.'
+  - type: dropdown
+    id: skills
+    attributes:
+      label: Skills
+      description: Opcional. Escolha até oito IDs; deixe vazio para usar os padrões de cada fase.
+      multiple: true
+      options:
+        - java-spring-api
+        - postgres-flyway
+        - integration-tests
+        - code-review
+        - grill-me
+        - superpowers
+        - superpowers-writing-plans
+        - superpowers-test-driven-development
+        - superpowers-systematic-debugging
+        - superpowers-verification-before-completion
+        - graphify
+  - type: markdown
+    attributes:
+      value: 'Opcional: com AI_SPEC_ENABLED=true, um colaborador comenta `/ai-spec` para refinar requisitos. Para implementar, revisa os critérios, adiciona `ai:ready` e comenta `/oc implemente esta issue` ou `@claude implemente esta issue`.'

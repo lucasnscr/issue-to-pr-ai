@@ -35,6 +35,11 @@ Use este acordo antes de adicionar `ai:ready`:
 - Dados de teste são sintéticos, e ambiente e comandos de validação estão disponíveis.
 - A tarefa cabe no perfil atual e tem um responsável para acompanhar a execução e seus custos.
 
+O formulário oferece um [catálogo de skills](skills-catalog.md) por fase. Escolha práticas
+adequadas à tarefa e use `/ai-spec` para esclarecer decisões quando habilitado. A rodada
+propõe perguntas e critérios; o responsável decide e atualiza a issue antes de liberar
+implementação. As recomendações da IA e o estado `draft-ready` não constituem autorização.
+
 O caminho automático atual aceita aplicação, testes e Markdown e exige Java de produção e
 um teste `*IT.java`. Documentação isolada, dependências, workflows e infraestrutura precisam
 de uma PR dedicada conduzida pelo mantenedor. Não amplie os caminhos ou retire testes apenas
@@ -59,6 +64,9 @@ Quais arquivos/componentes podem mudar? Quais contratos devem ser preservados?
 ## Validação
 Comandos e critérios HTTP independentes, com dados sintéticos.
 
+### Skills
+superpowers, postgres-flyway, graphify
+
 ## Responsável pela avaliação
 Pessoa que conferirá os resultados e a necessidade de intervenção.
 ```
@@ -68,6 +76,7 @@ Pessoa que conferirá os resultados e a necessidade de intervenção.
 | Etapa | Ação da equipe | Evidência de saída |
 |---|---|---|
 | Preparar | Revisar a issue e seu escopo | Critérios verificáveis e responsável definido |
+| Especificar, opcional | Escolher skills e comentar `/ai-spec`; responder e incorporar decisões | Proposta rastreável e decisões explícitas na issue |
 | Autorizar | Adicionar `ai:ready`; opcionalmente `ai:autofix`; comentar `/oc` ou `@claude` | Ator autorizado e execução identificada |
 | Implementar | Acompanhar a execução sem reenviar comandos em paralelo | Patch, telemetria e resultados das validações |
 | Publicar | Inspecionar a draft PR vinculada à issue | Diff e CI no SHA publicado |

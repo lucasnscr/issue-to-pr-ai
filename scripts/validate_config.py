@@ -22,10 +22,21 @@ def main():
     config = json.loads((ROOT / "opencode.json").read_text())
     assert config["share"] == "disabled", "OpenCode sessions must remain private"
     assert config["agent"]["reviewer"]["permission"] == {"*": "deny"}
+    assert config["agent"]["specifier"]["permission"] == {"*": "deny"}
+    assert "steps" not in config["agent"]["specifier"]
+    catalog = json.loads((ROOT / "config/skills-catalog.json").read_text())
+    form = yaml.safe_load((ROOT / ".github/ISSUE_TEMPLATE/feature.yml").read_text())
+    selector = next(field for field in form["body"] if field.get("id") == "skills")
+    assert selector["attributes"]["label"] == "Skills" and selector["attributes"]["multiple"] is True
+    assert set(selector["attributes"]["options"]) == {skill["id"] for skill in catalog["skills"]}
+    specification = yaml.safe_load((ROOT / ".github/workflows/ai-specification.yml").read_text())
+    assert "vars.AI_SPEC_ENABLED == 'true'" in specification["jobs"]["specify"]["if"]
+    assert specification["jobs"]["specify"]["permissions"] == {"contents": "read", "issues": "write"}
     # OpenCode 1.19.3 appends an assistant prefill at the agent step boundary;
     # Claude 4.6 rejects that request. The external review policy enforces 1 step.
     assert "steps" not in config["agent"]["reviewer"], "Limit review steps in the supervisor, not with CLI assistant prefill"
     policy = json.loads((ROOT / "config/ai-policy.json").read_text())
+    assert policy["profiles"]["specification"] == policy["profiles"]["review"]
     loop = json.loads((ROOT / "config/engineering-loop.json").read_text())
     assert loop["version"] == 1 and loop["maxAttempts"] == 2
     assert policy["profiles"]["correction"]["maxEstimatedCostUsd"] == loop["maxCorrectionEstimatedUsd"]

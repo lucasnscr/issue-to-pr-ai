@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { SHA, integer, safePath, decodeEnvelope } = require('./review-report.cjs');
 const limits = require('../../config/engineering-loop.json');
+const skills = require('../../scripts/skills.cjs');
 
 const STATE_MARKER = '<!-- continuous-ai-engineering-state:v1 -->';
 const BOT = 'github-actions[bot]';
@@ -198,6 +199,8 @@ async function prepare({ github, context, core, pause = sleep, directory = proce
       if (issue.pull_request || !issue.body || issue.body.length > 20000) throw new Error('The linked issue acceptance criteria are missing or oversized.');
       plan.issue = { number: issue.number, title: issue.title, body: issue.body };
     }
+    const selected = await skills.selectionForPr({ github, repo, pr });
+    plan.skills = skills.bundle({ selection: selected, phases: ['correction', 'testing'], commit: pr.base.sha }).manifest;
     // Persist before exposing a model credential. A cancelled job still consumes this attempt.
     plan.attempt = state.attempts.length + 1;
     state.attempts.push({ number: plan.attempt, sha: plan.sha, reviewRunId: runId,
@@ -208,6 +211,7 @@ async function prepare({ github, context, core, pause = sleep, directory = proce
     const taskDirectory = path.join(directory, 'correction-plan');
     fs.mkdirSync(taskDirectory, { recursive: true });
     fs.writeFileSync(path.join(taskDirectory, 'plan.json'), JSON.stringify(plan, null, 2) + '\n');
+    fs.writeFileSync(path.join(taskDirectory, 'skills-manifest.json'), JSON.stringify(plan.skills, null, 2) + '\n');
     for (const [key, value] of Object.entries({ ready: 'true', number, sha: plan.sha, base_sha: plan.baseSha,
       branch: plan.branch, attempt: plan.attempt, state_comment_id: record.id, directory: taskDirectory })) core.setOutput(key, String(value));
   } catch (error) {

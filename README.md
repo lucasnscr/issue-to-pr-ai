@@ -4,7 +4,8 @@ Template de desenvolvimento orientado por issues: um colaborador descreve a tare
 implementa, testes com PostgreSQL e Docker validam o código antes da PR, e uma pessoa decide o merge.
 
 Inclui uma API de catálogo funcional, integração com OpenCode e Claude Code,
-revisão por IA, ciclo opcional de correção na mesma PR e um perfil de inferência com vLLM no Kubernetes.
+revisão por IA, ciclo opcional de correção na mesma PR, skills selecionáveis por issue
+e um perfil de inferência com vLLM no Kubernetes.
 
 Repositório: [lucasnscr/issue-to-pr-ai](https://github.com/lucasnscr/issue-to-pr-ai).
 
@@ -17,6 +18,8 @@ o [roadmap](docs/roadmap.md) propõe como evoluir a referência para outros proj
 ```mermaid
 flowchart LR
   I[Issue com critérios de aceite] --> G[Label ai:ready e comando autorizado]
+  I --> S[Skills e rodada opcional /ai-spec]
+  S --> I
   G --> A[GitHub Actions e agente]
   A --> C[Testes PostgreSQL e Docker]
   C --> P[PR em draft]
@@ -37,6 +40,12 @@ flowchart LR
   H --> M[Merge autorizado]
   A -. inferência .-> L[Modelo gerenciado ou vLLM privado]
 ```
+
+Escolha práticas de **Superpowers**, **grill-me**, **Graphify** e Java/PostgreSQL no campo
+**Skills** da issue. O comando opcional `/ai-spec` ajuda a esclarecer requisitos; a seleção
+acompanha implementação, testes, revisão e correção, com hashes para auditoria.
+Veja o [catálogo e os exemplos](docs/skills-catalog.md) e a
+[validação da entrega](docs/validacao-skills.md).
 
 ## Interface web
 
