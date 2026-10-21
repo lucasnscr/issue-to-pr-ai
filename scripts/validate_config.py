@@ -22,6 +22,9 @@ def main():
     config = json.loads((ROOT / "opencode.json").read_text())
     assert config["share"] == "disabled", "OpenCode sessions must remain private"
     assert config["agent"]["reviewer"]["permission"] == {"*": "deny"}
+    # OpenCode 1.19.3 appends an assistant prefill at the agent step boundary;
+    # Claude 4.6 rejects that request. The external review policy enforces 1 step.
+    assert "steps" not in config["agent"]["reviewer"], "Limit review steps in the supervisor, not with CLI assistant prefill"
     for directory in ("application", "inference"):
         base = ROOT / "infra/kubernetes" / directory
         data = yaml.safe_load((base / "kustomization.yaml").read_text())
