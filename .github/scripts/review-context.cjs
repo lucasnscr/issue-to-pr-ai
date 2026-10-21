@@ -2,8 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const baseExcerpts = require('./review-base.cjs');
 
-const MAX_PATCH_BYTES = 96000;
-const MAX_CONTEXT_BYTES = 112000;
+const { maxPatchBytes: MAX_PATCH_BYTES, maxContextBytes: MAX_CONTEXT_BYTES } = require('./review-limits.cjs');
 
 module.exports = async ({ github, context, core }) => {
   core.setOutput('ready', 'false');
