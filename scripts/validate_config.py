@@ -25,6 +25,14 @@ def main():
     # OpenCode 1.19.3 appends an assistant prefill at the agent step boundary;
     # Claude 4.6 rejects that request. The external review policy enforces 1 step.
     assert "steps" not in config["agent"]["reviewer"], "Limit review steps in the supervisor, not with CLI assistant prefill"
+    policy = json.loads((ROOT / "config/ai-policy.json").read_text())
+    loop = json.loads((ROOT / "config/engineering-loop.json").read_text())
+    assert loop["version"] == 1 and loop["maxAttempts"] == 2
+    assert policy["profiles"]["correction"]["maxEstimatedCostUsd"] == loop["maxCorrectionEstimatedUsd"]
+    assert policy["profiles"]["review"]["maxEstimatedCostUsd"] == loop["maxReviewEstimatedUsd"]
+    assert loop["maxEstimatedBudgetUsd"] == loop["maxReviewEstimatedUsd"] + loop["maxAttempts"] * (
+        loop["maxCorrectionEstimatedUsd"] + loop["maxReviewEstimatedUsd"]
+    )
     for directory in ("application", "inference"):
         base = ROOT / "infra/kubernetes" / directory
         data = yaml.safe_load((base / "kustomization.yaml").read_text())

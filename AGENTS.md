@@ -23,7 +23,8 @@ The application is a Java 21 / Spring Boot product catalog in `apps/catalog-api`
 - Use a concrete title and explain resulting behavior, tests run, and any unverified acceptance criteria.
 - Native OpenCode GitHub integration may create the PR itself; if needed, mark it as draft with `gh pr ready --undo`.
 - Do not approve or merge a PR. A maintainer marks it ready, checks CI, and decides the merge.
-- An AI review is advisory. Do not start automatic correction/review loops or create follow-up tasks autonomously.
+- An AI review is advisory. The bounded engineering loop is authorized only when `AI_LOOP_ENABLED=true` and the PR has `ai:autofix`; follow `config/engineering-loop.json` and the trusted correction workflow. Do not create follow-up tasks or start other correction/review loops autonomously.
+- The correction agent may edit only application/tests/Markdown in its isolated workspace. It must not run commands; independent jobs validate and publish to the same PR. It must stop on unresolved/invalid findings or exhausted limits. A maintainer still decides approval and merge.
 - In the `AI live test` diagnostic, leave Git and PR publication to the separate publisher job; the model only edits application/tests/docs.
 
 ## Useful commands
