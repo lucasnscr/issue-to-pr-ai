@@ -71,11 +71,12 @@ no diff contra `main`; o serviço foi restaurado sem reduzir nem retirar testes.
    identifica explicitamente que o diff final contém somente Markdown.
 4. A [CI 39663351585](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39663351585)
    aprovou 122 testes Node, 84 testes Java com PostgreSQL real, imagem Docker e aceitação HTTP.
-5. O [check 119442604806](https://github.com/lucasnscr/issue-to-pr-ai/runs/119442604806)
-   publicou `success`: CI e triagem aprovadas para o SHA atual.
+5. O [check pela API 119442604806](https://github.com/lucasnscr/issue-to-pr-ai/runs/119442604806)
+   publicou `success`: CI e triagem aprovadas para o SHA atual. Isso demonstrou a decisão,
+   mas ainda não a aceitação pela proteção da branch, conforme o ensaio abaixo.
 
 O ensaio comprovou bloqueio, recibo autorizado, invalidação por novo SHA, rejeição de
-comando obsoleto e liberação após revisão/CI atuais. A correção desta regressão foi
+comando obsoleto e sinalização de sucesso após revisão/CI atuais. A correção desta regressão foi
 manual e deliberada; não é evidência de atuação do corretor automático neste teste.
 Autorização negada, recibos falsificados, edição/exclusão de decisões, reconhecimento de
 paradas e concorrência entre gerações/PRs foram exercitados nos testes automatizados,
@@ -85,6 +86,28 @@ permanece uma amostra de seis casos, com falso positivo observado.
 As duas revisões desta etapa somaram USD 0,032013 estimados. Novos commits de documentação
 também exigem seus próprios checks; os resultados acima se referem aos SHAs identificados,
 e a conversa/checks da PR preservam a validação da revisão final do relatório.
+
+## R2: aceitação da proteção e job nativo
+
+O SHA documental `d7430f656e952fbb6a23d3419710e9d0badf7533` também passou em CI,
+revisão e check pela API, mas a tentativa normal de merge foi recusada pelo GitHub:
+`Required status check "AI review gate" is expected` (HTTP 405). Portanto, check verde e
+regra cadastrada não comprovaram, sozinhos, uma integração funcional com a proteção.
+
+A [correção na PR #44](https://github.com/lucasnscr/issue-to-pr-ai/pull/44) publicou um
+job nativo de `pull_request_target` chamado `AI review gate`; a decisão detalhada da API
+passou a `AI review decision`. O job obrigatório reconsulta metadados em modo somente
+leitura e falha diante de pendências. O reconciliador reexecuta o workflow elegível do
+mesmo SHA/PR quando sua conclusão precisa mudar, sem chamar o modelo. A
+[CI 39665495694](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39665495694)
+aprovou 128 testes Node, 84 Java/PostgreSQL, Docker e HTTP dessa correção.
+
+Na implantação, somente a nova exigência experimental foi temporariamente retirada para
+publicar a correção já validada; os dois checks originais e as demais regras permaneceram.
+A exigência do job nativo foi reaplicada imediatamente. Não houve bypass administrativo,
+push direto à `main` nem integração da regressão. A revisão final deste relatório exige
+nova CI, parecer e job nativo aprovados, seguida de merge normal sob a regra restaurada;
+as execuções finais e a confirmação desse merge ficam na conversa da PR #43.
 
 O check `AI review gate` foi adicionado às verificações obrigatórias de `main`, vinculado
 ao GitHub Actions (App 15368), preservando `Repository checks`, `Build and tests`, modo
