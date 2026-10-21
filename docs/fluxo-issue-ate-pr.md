@@ -225,8 +225,10 @@ Há dois caminhos para iniciar [AI review](../.github/workflows/ai-review.yml):
 | Dispatch do publisher ou manual | Branch padrão, PR aberta do próprio repositório; permite draft. Ator manual precisa de escrita |
 | Evento de PR | PR do próprio repositório, fora de draft, com `ai:ready`, em abertura, novo commit, reabertura ou saída de draft |
 
-A label da issue não é copiada automaticamente para a PR pelo publisher. O dispatch inicial permite
-analisar a draft sem essa label. Para os eventos automáticos posteriores, adicione a label na própria PR.
+No fluxo padrão, a label da issue não é copiada automaticamente para a PR. O dispatch inicial permite
+analisar a draft sem essa label. Quando a issue tem também `ai:autofix`, o publisher adiciona ambas
+as labels à PR para autorizar o ciclo limitado. Nos demais casos, adicione `ai:ready` à própria PR
+para habilitar os eventos automáticos posteriores.
 Adicionar apenas a label não é um evento configurado para iniciar revisão; use dispatch se necessário.
 Novos commits em uma draft também precisam de dispatch ou de uma transição elegível para pronta.
 
@@ -249,6 +251,13 @@ de tokens e 4 MiB de saída, com telemetria obrigatória.
 
 Uma etapa separada publica o resultado como **comentário na conversa da PR**, com o SHA analisado.
 É um parecer consultivo; não é uma aprovação formal `APPROVED` nem um bloqueio formal `CHANGES_REQUESTED`.
+
+O revisor também retorna JSON validado com achados associados a linhas dos trechos modificados do patch.
+Com `AI_LOOP_ENABLED=true` e `ai:autofix` na PR, o workflow confiável pode devolver esses achados
+ao agente, testar a correção, atualizar a mesma branch e solicitar outra revisão. Há no máximo
+duas correções por PR e reserva estimada de USD 9 por ciclo. Uma pessoa continua responsável
+pela aprovação e pelo merge. O [guia do engineering loop](engineering-loop.md) explica ativação,
+estados, isolamento, limites e como interromper o ciclo.
 
 Antes de publicar, o workflow consulta a PR novamente. Se o SHA mudou ou a PR foi fechada,
 descarta o resultado antigo. Um comentário do bot com o marcador do mesmo SHA impede nova inferência

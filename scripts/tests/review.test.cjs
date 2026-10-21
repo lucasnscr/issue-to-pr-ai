@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const prepare = require('../../.github/scripts/review-context.cjs');
 const publish = require('../../.github/scripts/publish-review.cjs');
+const { encodeEnvelope } = require('../../.github/scripts/review-report.cjs');
 
 const basePr = { number: 3, state: 'open', draft: false, changed_files: 1,
   head: { sha: 'abc123', repo: { full_name: 'example/catalog' } } };
@@ -12,14 +13,15 @@ const file = { filename: 'app.java', status: 'modified', changes: 2, additions: 
   patch: '@@ -1 +1 @@\n-old\n+new' };
 const context = { repo: { owner: 'example', repo: 'catalog' }, payload: { pull_request: basePr } };
 
-async function prepareReview(pr = basePr, files = [file], comments = []) {
+async function prepareReview(pr = basePr, files = [file], comments = [], triggeredPr = basePr) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'continuous-ai-review-test-'));
   const previous = process.env.RUNNER_TEMP;
   process.env.RUNNER_TEMP = directory;
   const outputs = {};
   const listComments = () => {};
   try {
-    await prepare({ context, core: { setOutput: (key, value) => { outputs[key] = value; }, notice() {} },
+    await prepare({ context: { ...context, payload: { pull_request: triggeredPr } },
+      core: { setOutput: (key, value) => { outputs[key] = value; }, notice() {} },
       github: { rest: { pulls: { get: async () => ({ data: pr }), listFiles() {} }, issues: { listComments } },
         paginate: async method => method === listComments ? comments : files } });
     if (outputs.ready === 'true') outputs.contextText = fs.readFileSync(path.join(outputs.directory, 'context.txt'), 'utf8');
@@ -44,6 +46,17 @@ test('a completed bot review suppresses another paid request for the same SHA', 
   assert.equal((await prepareReview(basePr, [file], [comment])).ready, 'false');
   assert.equal((await prepareReview(basePr, [file], [{ ...comment, user: { login: 'someone-else' } }])).ready, 'true');
   assert.equal((await prepareReview(basePr, [file], [{ ...comment, body: '<!-- continuous-ai-review:obsolete -->' }])).ready, 'true');
+});
+
+test('an existing structured review exposes its source run for opt-in without another inference', async () => {
+  const sha = 'a'.repeat(40);
+  const pr = { ...basePr, head: { ...basePr.head, sha } };
+  const body = `<!-- continuous-ai-review:${sha} -->\n` + encodeEnvelope({
+    version: 1, repository: 'example/catalog', pr: 3, sha, runId: 100, runAttempt: 1,
+    estimatedCostUsd: 0.1, usageComplete: true, policyDecision: 'allow', review: { summary: 'Achado.', findings: [] },
+  });
+  const result = await prepareReview(pr, [file], [{ user: { login: 'github-actions[bot]' }, body }], pr);
+  assert.equal(result.ready, 'false'); assert.equal(result.existing_review_run_id, '100');
 });
 
 test('missing files, truncated patches and oversized diffs fail explicitly', async () => {

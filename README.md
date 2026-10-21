@@ -4,7 +4,7 @@ Template de desenvolvimento orientado por issues: um colaborador descreve a tare
 implementa, testes com PostgreSQL e Docker validam o código antes da PR, e uma pessoa decide o merge.
 
 Inclui uma API de catálogo funcional, integração com OpenCode e Claude Code,
-revisão por IA e um perfil opcional de inferência com vLLM no Kubernetes.
+revisão por IA, ciclo opcional de correção na mesma PR e um perfil de inferência com vLLM no Kubernetes.
 
 Repositório: [lucasnscr/issue-to-pr-ai](https://github.com/lucasnscr/issue-to-pr-ai).
 
@@ -19,7 +19,11 @@ flowchart LR
   C --> P[PR em draft]
   P --> R[Revisão consultiva por IA]
   P --> K[CI obrigatória]
-  R --> H[Avaliação do mantenedor]
+  R --> F{Achados e correção autorizada?}
+  F -- Sim --> E[Correção limitada e testes na mesma PR]
+  F -- Não --> H[Avaliação do mantenedor]
+  E --> R
+  E --> K
   K --> H
   H --> M[Merge autorizado]
   A -. inferência .-> L[Modelo gerenciado ou vLLM privado]
@@ -130,6 +134,11 @@ com PostgreSQL real, constrói a imagem e testa a API antes de publicar a PR. A 
 explicitamente porque eventos criados pelo `GITHUB_TOKEN` normalmente não iniciam outros workflows.
 A revisão usa OpenCode sem ferramentas habilitadas: recebe o patch,
 gera o texto, e uma etapa separada publica o comentário. Ela não roda o código da PR.
+
+Com `AI_LOOP_ENABLED=true` e a label `ai:autofix`, os achados estruturados retornam a um
+agente de correção. O ciclo faz até duas tentativas na mesma PR, com testes independentes,
+controle de consumo e parada para intervenção. O mantenedor decide aprovação e merge.
+Veja [ativação, limites e acompanhamento do engineering loop](docs/engineering-loop.md).
 
 Consulte [política e consumo](docs/governance.md), [Cursor como alternativa](docs/cursor.md),
 [casos de uso em equipes de engenharia](docs/use-cases.md) e a [apresentação](docs/presentation/).
