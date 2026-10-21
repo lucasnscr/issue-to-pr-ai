@@ -1,96 +1,211 @@
 # Arquitetura e decisões
 
-O [Issue to PR AI](https://github.com/lucasnscr/issue-to-pr-ai) demonstra a entrega de uma
-issue até uma PR em draft com evidências dos testes. A API de catálogo oferece tarefas pequenas
-para verificar o fluxo com modelos gerenciados ou inferência própria.
+O [Issue to PR AI](https://github.com/lucasnscr/issue-to-pr-ai) implementa um fluxo de
+desenvolvimento orientado por issues: geração de código, validação independente, draft PR,
+revisão estruturada e correção opcional na mesma branch. A aprovação e o merge pertencem ao
+mantenedor. O [modelo de trabalho](modelo-de-trabalho.md) define como uma equipe opera esse fluxo;
+o [roadmap](roadmap.md) distingue as próximas propostas do comportamento implementado.
 
-## Componentes
+## Componentes e responsabilidades
 
-| Componente | Responsabilidade |
+```mermaid
+flowchart LR
+  H["Colaborador autorizado"] --> I["Issue com escopo e critérios"]
+  I --> G["Gate de autorização na branch padrão"]
+  G --> A["OpenCode ou Claude Code: implementação"]
+  A --> V["Escopo, PostgreSQL, Docker e HTTP"]
+  V --> P["Publisher em outro runner"]
+  P --> PR["Branch dedicada e draft PR"]
+  PR --> CI["CI do commit publicado"]
+  PR --> R["Revisor sem ferramentas: JSON e parecer"]
+  R --> L["Controlador do ciclo opcional"]
+  CI --> L
+  L -- "Achados, gates e reserva aprovados" --> E["Corretor isolado e validação"]
+  E --> U["Outro runner publica na mesma PR"]
+  U --> CI
+  U --> R
+  L -- "Sem achados ou parada registrada" --> M["Mantenedor avalia estado e evidências"]
+  M --> MAIN["Merge autorizado"]
+  A -. inferência .-> MODEL["Provedor gerenciado ou vLLM"]
+  R -. inferência .-> MODEL
+  E -. inferência .-> MODEL
+```
+
+| Componente | Implementação | Responsabilidade |
+|---|---|---|
+| Autorização da tarefa | `ai-implement.yml`, `authorize.cjs`, `prepare-implementation.cjs` | Consultar ator, comando, issue, labels e SHA da base |
+| Implementação | `run-implementation.mjs` | Executar a CLI escolhida sob política, sem publicar código |
+| Validação e primeira publicação | `validate-agent-changes.mjs`, jobs de `ai-implement.yml` | Validar aplicação e testes; outro runner cria a draft PR |
+| Revisão | `ai-review.yml`, `review-context.cjs`, `run-review.mjs`, `review-report.cjs`, `publish-review.cjs` | Preparar contexto confiável, validar JSON e publicar parecer associado ao SHA |
+| Controle do ciclo | `ai-correct.yml`, `engineering-loop.cjs` | Verificar procedência da revisão, CI, autorização, escopo e reservas |
+| Correção | `run-correction.mjs`, `validate-correction.mjs` | Editar fonte/testes/docs em diretório isolado; validar o patch antes de publicar |
+| CI | `ci.yml` | Revalidar scripts/configuração, API/PostgreSQL e aplicação em Docker |
+| Catálogo de demonstração | Java 21, Spring Boot, PostgreSQL e Flyway | Fornecer uma aplicação real para tarefas verificáveis |
+
+Os workflows ficam em [`.github/workflows`](../.github/workflows/) e os controles em
+[`.github/scripts`](../.github/scripts/) e [`scripts`](../scripts/).
+
+## Entrada e primeira entrega
+
+`issue_comment: created` reconhece `/oc`, `/opencode` ou `@claude` como primeira expressão
+do comentário. O gate exige uma issue aberta com `ai:ready`, ator humano e permissão atual
+`write`, `maintain` ou `admin`. Comentários em PRs não iniciam implementações. A variável
+`CLAUDE_ENABLED` libera o caminho adicional do Claude Code.
+
+O job parte do SHA atual da branch padrão, usa instruções confiáveis e limita alterações
+a fonte, testes e Markdown. A implementação atual exige Java de produção e um teste Java
+`*IT.java`; tarefas somente de documentação, dependências ou infraestrutura seguem uma PR
+conduzida pelo mantenedor. O validador não é um adaptador genérico para qualquer linguagem.
+
+Depois da geração, Maven executa testes com PostgreSQL real; Docker e critérios HTTP
+independentes verificam a aplicação empacotada. Um runner novo reaplica e confere o patch,
+publica `ai/issue-NUMERO-RUN_ID` e abre uma draft PR vinculada por `Closes #NUMERO`.
+Quando a issue também tem `ai:autofix`, o publisher transfere `ai:ready` e `ai:autofix`
+para a PR. CI e revisão são solicitadas explicitamente.
+
+## Revisão e procedência do parecer
+
+O revisor usa o checkout confiável da base; no ciclo, o dispatch é executado na branch
+padrão. O código do head não é executado por essa etapa. O contexto contém o patch completo
+e trechos limitados da base, incluindo setup de testes e os normalizadores de produto/DTO.
+O patch pode ter até 96.000 bytes e o contexto total até 112.000 bytes. Conteúdo incompleto,
+binário ou acima do limite é rejeitado, sem truncamento silencioso.
+
+O agente `reviewer` tem todas as ferramentas negadas. Sua resposta é validada como
+`{summary, findings}`; cada achado contém prioridade P0–P3, título, evidência, arquivo e linha
+de um trecho do patch. Uma etapa separada publica um comentário com SHA e envelope estruturado
+de repositório, PR, execução, tentativa e consumo. O controlador aceita somente dados do bot
+provenientes de uma revisão confiável e concluída na branch padrão.
+
+Uma revisão publicada para o mesmo SHA impede nova inferência. Quando possui envelope
+estruturado válido, o dispatch pode reutilizá-la para o ciclo autorizado. Texto livre antigo
+continua consultivo. Resultados de um SHA que deixou de ser atual são descartados.
+
+## Gatilhos e autorização do ciclo
+
+Os caminhos de revisão exigem `AI_ENABLED=true` e `AI_REVIEW_ENABLED=true`, além das
+condições da tabela. Correções exigem também `AI_LOOP_ENABLED=true` e a autorização da PR.
+
+| Entrada | Condições e efeito |
 |---|---|
-| GitHub Issues | Tarefa e critérios de aceite |
-| GitHub Actions | Autorização, execução, timeout, testes e artefatos |
-| OpenCode / Claude Code | Alteração do código em uma branch e entrega de PR |
-| Modelo gerenciado / vLLM | Inferência consumida pelo agente |
-| PostgreSQL e Flyway | Persistência e evolução de schema do catálogo |
-| Maintainer | Revisão, aprovação e merge |
+| Comando em issue | `AI_ENABLED=true`, issue aberta com `ai:ready`, ator autorizado; inicia implementação |
+| Evento automático de PR | Mesmo repositório, fora de draft, `ai:ready`, abertura/novo commit/reabertura/saída de draft; inicia revisão |
+| Evento de PR com correção autorizada | Condições anteriores, `AI_LOOP_ENABLED=true` e `ai:autofix`; encaminha a revisão para dispatch na branch padrão |
+| Dispatch de revisão | PR aberta do mesmo repositório; aceita draft; ator manual precisa de escrita |
+| Dispatch de correção | `AI_ENABLED`, `AI_REVIEW_ENABLED` e `AI_LOOP_ENABLED` ativos, `ai:autofix`, revisão confiável e SHA atual; avalia se pode reservar uma tentativa |
 
-O agente executa no runner. O vLLM executa no cluster com GPU e oferece a API de inferência.
-São processos separados: escolher inferência própria não exige mover a aplicação de catálogo
-para o mesmo cluster. O catálogo também funciona somente com Docker Compose.
+Adicionar uma label isoladamente não dispara implementação ou revisão. O ciclo é
+serializado por PR, sem cancelar uma chamada já iniciada. A branch precisa conter a versão
+atual da branch padrão. Antes da inferência e antes do push, o controlador reconsulta a
+autorização, o head e a base. Um achado P0 exige intervenção antes de liberar o corretor.
 
-## Implementação por issue
+O publisher usa `workflow_dispatch` porque eventos de automação com `GITHUB_TOKEN`
+possuem regras próprias: certos eventos de PR podem aguardar aprovação de execução, enquanto
+dispatch inicia a execução explicitamente. O controlador prefere a CI disparada para o SHA
+correto, evitando confundir uma execução pendente de aprovação com a validação realizada.
+Veja a [documentação de gatilhos do GitHub](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
-O workflow escuta comentários novos. A primeira expressão do comentário deve ser `/oc`,
-`/opencode` ou `@claude`; menções dentro de texto comum não ativam o agente.
-O gate consulta a permissão atual do ator e o estado atual da issue/PR na API do GitHub.
-Ele exige `write`, `maintain` ou `admin`, label `ai:ready`, item aberto e ator humano.
-Em comentários de PR, exige que a branch pertença ao próprio repositório.
+## Correção, validação e publicação
 
-O runner inicia a partir da branch padrão. A integração nativa recebe o contexto da issue/PR
-e cria/atualiza a branch. As instruções exigem uma PR em draft e evidências dos testes.
-OpenCode recebe no máximo 25 etapas de agente; Claude recebe 25 turnos e orçamento de USD 3
-por execução. O timeout do job é 25 minutos. Estes são limites técnicos, não estimativas de custo.
+1. **Preparar:** confirmar revisão estruturada, PR atual, base atualizada, escopo permitido e
+   CI bem-sucedida do SHA revisado; aguardar essa CI por até 600 segundos.
+2. **Reservar:** persistir tentativa e orçamento no comentário de acompanhamento antes de
+   fornecer a credencial do modelo. Falhas, cancelamentos e reexecuções preservam a reserva.
+3. **Propor:** o OpenCode recebe os achados e os critérios originais como dados, em diretório
+   novo com fonte/testes/Markdown, sem `.git` ou configurações da PR. Comandos, ferramentas
+   de rede, subagentes, plugins, LSP e formatadores ficam desabilitados.
+4. **Validar:** exigir alteração de produção e teste de regressão; verificar caminhos,
+   modos de arquivos e patch; executar Maven/PostgreSQL, Docker e aceitação HTTP confiável.
+5. **Publicar:** outro runner reaplica e confere o patch e as condições atuais da PR. Faz
+   push normal na mesma branch e solicita CI e revisão para o novo commit.
 
-O native GitHub runner do OpenCode é responsável pelo push e criação da PR; a descrição explícita
-da tarefa deve pedir implementação para que ele não se limite a responder uma pergunta.
-As instruções de draft são orientações ao agente; a proteção efetiva de `main` depende das regras
-configuradas no GitHub. Não existe merge automático no template.
+O agente de correção usa OpenCode mesmo quando a implementação inicial veio de `@claude`.
+Os jobs de correção atuais usam `ubuntu-latest`; o uso desses jobs com vLLM privado/ARC
+permanece sem implantação validada. Instruções operacionais: [engineering-loop.md](engineering-loop.md).
 
-Comentários são serializados por número da issue/PR. Novos comentários de bots não iniciam
-implementações, e revisões não geram comentários de correção automaticamente.
+## Estados e decisão de integração
 
-## Primeira entrega e diagnóstico
+```mermaid
+stateDiagram-v2
+  state "active: tentativa reservada" as active
+  state "awaiting-review: commit publicado" as awaiting
+  state "ready-for-human: avaliação do mantenedor" as ready
+  state "needs-human: intervenção necessária" as stopped
+  [*] --> active: CI e achados válidos, autorização e reserva
+  [*] --> ready: CI aprovada e revisão atual sem achados
+  [*] --> stopped: gate falhou ou achado P0
+  active --> awaiting: testes e publicação aprovados
+  active --> stopped: correção, testes ou publicação falharam
+  awaiting --> active: achados válidos e reserva disponível
+  awaiting --> ready: nova CI aprovada e revisão sem achados
+  awaiting --> stopped: falha, P0 ou limite atingido com achados
+  ready --> [*]: decisão de integração do mantenedor
+```
 
-A primeira implementação fica na branch `feat/initial-template` e é proposta por PR em draft
-contra `main`. O bootstrap de um repositório vazio usa um commit vazio em `main` apenas para
-estabelecer a base; o código entra pela PR. A revisão humana continua responsável pelo merge.
+| Estado | Significado operacional |
+|---|---|
+| `active` | Há tentativa reservada; a execução indicada deve ser acompanhada |
+| `awaiting-review` | A correção foi publicada; falta avaliar a nova CI e revisão |
+| `ready-for-human` | CI passou e a revisão atual não trouxe achados; o mantenedor decide a entrega |
+| `needs-human` | O controlador registrou uma condição de parada; exige inspeção das evidências |
 
-Antes desse merge, um push na branch `ai/live-test` inicia o workflow `AI live test`, quando
-`AI_LIVE_TEST_ENABLED=true`. O teste implementa especificamente o filtro de categoria da issue
-indicada em `AI_LIVE_TEST_ISSUE`, que deve estar aberta com a label `ai:ready`. O ator precisa
-ter escrita no repositório. A variável `AI_LIVE_TEST_BASE_REF` aponta para `feat/initial-template`
-na primeira entrega; o gate exige que essa base e a branch de diagnóstico tenham o mesmo commit.
-A tarefa usa esse código e publica sua PR de resultado contra a base configurada.
-Isso permite verificar uma chamada real e a entrega de código sem depender do workflow de
-comentários, que só fica disponível quando estiver na branch padrão.
+O diagrama mostra o ciclo automático; a triagem posterior a uma parada fica com o mantenedor.
+O estado é persistido em um comentário do bot, com tentativas `reserved`, `published` ou
+`failed`, SHAs, execuções e estimativas. As tentativas não são zeradas ao remover/recolocar
+labels. O modelo não muda o draft, não aprova e não integra código.
 
-O job de geração executa `opencode run` com a credencial do modelo, sem token GitHub no ambiente
-ou credenciais persistidas no checkout. O workflow restringe mudanças a código, testes e
-documentação, executa testes com PostgreSQL real, faz build Docker e verifica o filtro por HTTP
-antes de qualquer push do código gerado. Um job separado recebe o patch validado e a credencial
-de escrita, publica a branch `ai/issue-<número>-<run>` e abre a PR em draft vinculada à issue.
-O artefato `live-implementation`, os relatórios e a PR registram o que foi validado.
-Esse diagnóstico é distinto do caminho nativo `opencode github run`; validar um deles não
-comprova o outro. O [guia do GitHub](setup-cloud.md#teste-real-antes-do-primeiro-merge) descreve a execução.
+**Estado do ciclo e conclusão do workflow são sinais diferentes.** Um job pode concluir com
+sucesso técnico depois de registrar `needs-human`. Esse comentário não implementa um check
+obrigatório de liberação do ciclo na proteção de branch. O mantenedor confere CI, pareceres
+e triagem; um check específico de liberação é uma proposta do [roadmap](roadmap.md).
 
-## Revisão separada
+## Limites e separação de credenciais
 
-O workflow de revisão usa as ferramentas da base da PR, sem checkout do head.
-Ele baixa patches pela API e verifica se a PR ainda aponta para o SHA do evento.
-A inferência recebe o patch como anexo e usa o agente `reviewer`, com todas as ferramentas negadas.
-Essa etapa não recebe um token de escrita do GitHub pelo ambiente.
+| Controle | Implementação atual |
+|---|---|
+| Implementação inicial | 35 etapas, 900 segundos, estimativa USD 5 |
+| Cada revisão | 1 etapa, 540 segundos, estimativa USD 1 |
+| Cada correção | 20 etapas, 600 segundos, estimativa USD 3 |
+| Ciclo por PR | Até 2 correções; reserva estimada USD 9 para revisão inicial e duas correções/revisões |
+| Patch corretivo | Até 25 arquivos e 60.000 bytes; fonte/testes/Markdown; migrations aplicadas preservadas |
+| Estado e consumo | Comentário do bot por PR e agregados JSON por execução; artefatos com retenção de 14 dias |
 
-A publicação ocorre depois, em uma etapa com token. Um SHA obsoleto é descartado.
-Reexecuções atualizam o comentário para o mesmo SHA, evitando comentários duplicados.
-PRs em draft ou de forks são ignoradas. Marcar uma PR como pronta dispara revisão.
-Patches incompletos, binários ou acima de 32 mil bytes falham explicitamente e precisam de revisão humana.
-Uma execução bem-sucedida indica que o comentário foi produzido, não que o código foi aprovado.
+As fontes são [`config/ai-policy.json`](../config/ai-policy.json) e
+[`config/engineering-loop.json`](../config/engineering-loop.json). Estimativas e reservas são
+controles operacionais; um teto financeiro efetivo depende do provedor/gateway. Consumo
+indisponível não é zero. Revisões manuais externas ao ciclo também podem gerar consumo.
 
-## Validação e evidências
+Inferência recebe a credencial do provedor, sem token GitHub no ambiente do subprocesso.
+Testes posteriores não recebem a credencial do modelo. Os publishers com escrita rodam
+separados e não executam a aplicação candidata. As etapas que registram estado têm permissão
+para comentar na PR; o corretor mantém permissões de leitura. O diretório e as permissões
+de ferramentas reduzem o escopo da geração, sem transformar instruções em uma garantia de
+isolamento de sistema operacional. Detalhes de operação e consumo: [governance.md](governance.md).
 
-`CI / Repository checks` valida scripts, sintaxe dos workflows, YAML, POMs e composição dos manifestos.
-`CI / Build and tests` executa testes unitários, testes HTTP com PostgreSQL real e build Docker.
-JaCoCo produz relatório de cobertura sem usar uma porcentagem arbitrária como critério de qualidade.
+## Aplicação e infraestrutura de referência
 
-Execuções de IA salvam agente, modelo, duração e resultado do agente/testes em JSON e no resumo
-da Action. Tokens e custo não são inferidos: provedores e runtimes expõem métricas diferentes.
-Os registros são telemetria operacional, não prova de qualidade. Os logs e relatórios da CI são
-a fonte para inspecionar falhas.
+O catálogo contém CRUD, filtros, paginação, ordenação e interface web. O endpoint
+`GET /api/products/categories` consulta todas as categorias por
+`SELECT DISTINCT LOWER(TRIM(p.category))`, com ordenação no banco, sem paginação dos produtos.
+O catálogo vazio retorna `[]`; excluir a última ocorrência retira a categoria do resultado.
+Os testes verificam mais de 20 produtos e dados inseridos diretamente no PostgreSQL.
 
-## Limites da entrega
+Compose executa API e banco localmente. O perfil Kubernetes da aplicação foi validado em
+kind, com PVC e persistência após substituir Pods. vLLM fornece inferência em processo
+separado e requer o ambiente de GPU escolhido; ARC fornece runners. Manifestos de vLLM/ARC
+foram preparados, mas sua implantação e o enforcement de NetworkPolicy permanecem pendentes.
+Backup, autenticação de usuários, TLS externo e HA exigem uma implantação própria.
 
-O perfil Kubernetes é um laboratório com uma instância de PostgreSQL e uma de inferência.
-Backup, autenticação de usuários da API, TLS externo e HA ficam para uma implantação de produção.
-O endpoint de inferência é ClusterIP com chave e NetworkPolicy de entrada; a aplicação usa port-forward
-no laboratório. Nenhuma infraestrutura é provisionada automaticamente ao fazer push.
+## Evidência e evolução
+
+A [PR #32](https://github.com/lucasnscr/issue-to-pr-ai/pull/32) validou duas correções reais
+na mesma PR, 84 testes Java, 97 Node, PostgreSQL/Docker e estimativa total de USD 0.53927370.
+A candidata inicial continha um defeito controlado; esse laboratório não repetiu a geração
+inicial por comando na issue. Ele terminou em `needs-human` por limite com achados
+especulativos persistentes, seguido de triagem assistida sob autorização do mantenedor.
+O [relatório completo](validacao-engineering-loop.md) preserva resultados e SHAs; os números
+são evidência daquela execução, não garantia de custo, produtividade ou autonomia futuros.
+
+O diagnóstico anterior `AI live test` permanece histórico e desativado. Para a operação
+atual, consulte o [fluxo completo](fluxo-issue-ate-pr.md), o [modelo de trabalho](modelo-de-trabalho.md)
+e o [roadmap de evolução](roadmap.md).

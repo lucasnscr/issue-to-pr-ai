@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 permissions:
   contents: read
@@ -47,11 +47,14 @@ jobs:
         run: ./mvnw -B -ntp verify
       - name: Build application container
         run: docker build -t catalog-api:0.1.0 .
-      - name: Smoke test packaged application
+      - name: Full application HTTP acceptance
         run: |
           trap 'docker compose logs --no-color; docker compose down -v' EXIT
           docker compose up --no-build -d
           node scripts/smoke.mjs
+          node scripts/category-acceptance.mjs
+          node scripts/price-acceptance.mjs
+          node scripts/ordering-acceptance.mjs
       - name: Upload test and coverage reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

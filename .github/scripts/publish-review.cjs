@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const report = require('./review-report.cjs');
 
 module.exports = async ({ github, context, core }) => {
   const metadata = JSON.parse(fs.readFileSync(path.join(process.env.REVIEW_DIRECTORY, 'metadata.json'), 'utf8'));
@@ -11,7 +12,16 @@ module.exports = async ({ github, context, core }) => {
   }
   const review = fs.readFileSync('artifacts/review.md', 'utf8').trim();
   const marker = `<!-- continuous-ai-review:${metadata.sha} -->`;
-  const body = `${marker}\n${review}\n\n---\nRevisão por IA do commit \`${metadata.sha}\`. A aprovação e o merge cabem a uma pessoa.`;
+  let envelope = '';
+  if (fs.existsSync('artifacts/review.json')) {
+    const usage = JSON.parse(fs.readFileSync('artifacts/ai-usage.json', 'utf8'));
+    envelope = report.encodeEnvelope({ version: 1, repository: `${owner}/${repo}`, pr: metadata.number, sha: metadata.sha,
+      runId: Number(context.runId), runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT || 1),
+      estimatedCostUsd: usage.usage?.estimatedCostUsd, usageComplete: usage.usage?.complete,
+      policyDecision: usage.policy?.decision,
+      review: report.validateReview(JSON.parse(fs.readFileSync('artifacts/review.json', 'utf8')), metadata.files) });
+  }
+  const body = `${marker}\n${review}\n\n${envelope}\n\n---\nRevisão por IA do commit \`${metadata.sha}\`. A aprovação e o merge cabem a uma pessoa.`;
   if (!review || body.length > 60000) throw new Error('Review is empty or too long to publish.');
   const comments = await github.paginate(github.rest.issues.listComments, {
     owner, repo, issue_number: metadata.number, per_page: 100,

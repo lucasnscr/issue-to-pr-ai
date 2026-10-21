@@ -59,7 +59,7 @@ test('the CLI entrypoint runs through a symlink and checks required configuratio
     fs.symlinkSync(path.resolve(__dirname, '../run-live-test.mjs'), script);
     const result = spawnSync(process.execPath, [script], { encoding: 'utf8', env: {} });
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /MODEL, TASK_FILE, and ANTHROPIC_API_KEY are required/);
+    assert.match(result.stderr, /MODEL and TASK_FILE are required/);
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "maxAttempts": 2,
+  "maxEstimatedBudgetUsd": 9,
+  "maxCorrectionEstimatedUsd": 3,
+  "maxReviewEstimatedUsd": 1,
+  "maxChangedFiles": 25,
+  "maxCorrectionPatchBytes": 60000,
+  "ciWaitSeconds": 600
+}

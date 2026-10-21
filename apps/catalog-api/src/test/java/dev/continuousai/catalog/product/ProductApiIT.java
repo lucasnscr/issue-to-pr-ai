@@ -243,6 +243,312 @@ class ProductApiIT {
         assertThat(body.get("totalElements").asInt()).isEqualTo(2);
     }
 
+    // ── Price range filter tests ─────────────────────────────────────────────
+
+    @Test
+    void filtersByMinPriceOnlyIncludesProductsAtOrAbove() {
+        create("CHEAP-01", "Cheap",   "9.99");
+        create("MID-01",   "Mid",    "50.00");
+        create("EXP-01",   "Expensive", "199.99");
+
+        JsonNode body = http.getForObject("/api/products?minPrice={min}", JsonNode.class, "50.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+        body.get("content").forEach(p ->
+                assertThat(new BigDecimal(p.get("price").asText()))
+                        .isGreaterThanOrEqualTo(new BigDecimal("50.00")));
+    }
+
+    @Test
+    void filtersByMaxPriceOnlyIncludesProductsAtOrBelow() {
+        create("CHEAP-01", "Cheap",      "9.99");
+        create("MID-01",   "Mid",        "50.00");
+        create("EXP-01",   "Expensive", "199.99");
+
+        JsonNode body = http.getForObject("/api/products?maxPrice={max}", JsonNode.class, "50.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+        body.get("content").forEach(p ->
+                assertThat(new BigDecimal(p.get("price").asText()))
+                        .isLessThanOrEqualTo(new BigDecimal("50.00")));
+    }
+
+    @Test
+    void filtersByPriceRangeWithBothLimitsInclusive() {
+        create("CHEAP-01", "Cheap",      "9.99");
+        create("LOW-01",   "Low",       "10.00");
+        create("MID-01",   "Mid",       "55.00");
+        create("HIGH-01",  "High",     "100.00");
+        create("EXP-01",   "Expensive","199.99");
+
+        JsonNode body = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}", JsonNode.class, "10.00", "100.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(3);
+        body.get("content").forEach(p -> {
+            BigDecimal price = new BigDecimal(p.get("price").asText());
+            assertThat(price).isGreaterThanOrEqualTo(new BigDecimal("10.00"));
+            assertThat(price).isLessThanOrEqualTo(new BigDecimal("100.00"));
+        });
+    }
+
+    @Test
+    void priceRangeEqualLimitsIncludesExactMatch() {
+        create("EXACT-01", "Exact", "49.90");
+        create("OTHER-01", "Other", "49.91");
+
+        JsonNode body = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}", JsonNode.class, "49.90", "49.90");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(1);
+        assertThat(body.at("/content/0/price").decimalValue())
+                .isEqualByComparingTo(new BigDecimal("49.90"));
+    }
+
+    @Test
+    void priceRangeEmptyIntervalReturnsEmptyPage() {
+        create("BOOK-01", "Book", "100.00");
+
+        JsonNode body = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}", JsonNode.class, "200.00", "300.00");
+        assertThat(body.get("totalElements").asInt()).isZero();
+        assertThat(body.get("content").isEmpty()).isTrue();
+    }
+
+    @Test
+    void priceRangeCombinesWithCategoryFilter() {
+        createWithCategory("BOOK-01", "Cheap Book",    "10.00", "books");
+        createWithCategory("BOOK-02", "Expensive Book","200.00","books");
+        createWithCategory("TECH-01", "Tech",          "50.00", "tech");
+
+        JsonNode body = http.getForObject(
+                "/api/products?category={cat}&minPrice={min}&maxPrice={max}",
+                JsonNode.class, "books", "5.00", "50.00");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(1);
+        assertThat(body.at("/content/0/sku").asText()).isEqualTo("BOOK-01");
+    }
+
+    @Test
+    void priceRangeRespectsPagination() {
+        create("P-01", "Product 1",  "10.00");
+        create("P-02", "Product 2",  "20.00");
+        create("P-03", "Product 3",  "30.00");
+        create("P-04", "Product 4", "200.00");
+
+        JsonNode page0 = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}&page=0&size=2",
+                JsonNode.class, "10.00", "100.00");
+        JsonNode page1 = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}&page=1&size=2",
+                JsonNode.class, "10.00", "100.00");
+
+        assertThat(page0.get("totalElements").asInt()).isEqualTo(3);
+        assertThat(page0.get("totalPages").asInt()).isEqualTo(2);
+        assertThat(page0.get("content").size()).isEqualTo(2);
+        assertThat(page1.get("content").size()).isEqualTo(1);
+        assertThat(page0.at("/content/0/id")).isNotEqualTo(page1.at("/content/0/id"));
+    }
+
+    @Test
+    void listWithoutPriceFiltersPreservesAllProducts() {
+        create("BOOK-01", "Book",  "10.00");
+        create("TECH-01", "Tech", "200.00");
+
+        JsonNode body = http.getForObject("/api/products", JsonNode.class);
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-0.01", "-1", "-100"})
+    void rejectsNegativeMinPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?minPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-0.01", "-1", "-100"})
+    void rejectsNegativeMaxPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?maxPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.001", "10.999", "0.001"})
+    void rejectsMoreThanTwoDecimalPlacesInMinPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?minPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.001", "10.999", "0.001"})
+    void rejectsMoreThanTwoDecimalPlacesInMaxPrice(String price) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?maxPrice=" + price, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void rejectsMinPriceGreaterThanMaxPrice() {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?minPrice=100.00&maxPrice=50.00", JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    // ── Price sort tests ─────────────────────────────────────────────────────
+
+    @Test
+    void sortsByPriceAscending() {
+        create("SORT-01", "Expensive", "100.00");
+        create("SORT-02", "Cheap",      "10.00");
+        create("SORT-03", "Mid",        "50.00");
+
+        JsonNode body = http.getForObject("/api/products?sort={sort}", JsonNode.class, "price,asc");
+
+        assertThat(body.get("totalElements").asInt()).isEqualTo(3);
+        assertThat(body.at("/content/0/price").decimalValue()).isEqualByComparingTo("10.00");
+        assertThat(body.at("/content/1/price").decimalValue()).isEqualByComparingTo("50.00");
+        assertThat(body.at("/content/2/price").decimalValue()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void sortsByPriceDescending() {
+        create("SORT-01", "Expensive", "100.00");
+        create("SORT-02", "Cheap",      "10.00");
+        create("SORT-03", "Mid",        "50.00");
+
+        JsonNode body = http.getForObject("/api/products?sort={sort}", JsonNode.class, "price,desc");
+
+        assertThat(body.get("totalElements").asInt()).isEqualTo(3);
+        assertThat(body.at("/content/0/price").decimalValue()).isEqualByComparingTo("100.00");
+        assertThat(body.at("/content/1/price").decimalValue()).isEqualByComparingTo("50.00");
+        assertThat(body.at("/content/2/price").decimalValue()).isEqualByComparingTo("10.00");
+    }
+
+    @Test
+    void sortByPriceWithEqualPricesIsStableById() {
+        // Three products at the same price; tiebreaker must be ID ascending so that
+        // paginating one item at a time yields three distinct, non-overlapping products.
+        create("SAME-01", "Product A", "50.00");
+        create("SAME-02", "Product B", "50.00");
+        create("SAME-03", "Product C", "50.00");
+
+        JsonNode p0 = http.getForObject("/api/products?sort={s}&page=0&size=1", JsonNode.class, "price,asc");
+        JsonNode p1 = http.getForObject("/api/products?sort={s}&page=1&size=1", JsonNode.class, "price,asc");
+        JsonNode p2 = http.getForObject("/api/products?sort={s}&page=2&size=1", JsonNode.class, "price,asc");
+
+        assertThat(p0.get("totalElements").asInt()).isEqualTo(3);
+        // All prices must equal 50.00
+        assertThat(p0.at("/content/0/price").decimalValue()).isEqualByComparingTo("50.00");
+        assertThat(p1.at("/content/0/price").decimalValue()).isEqualByComparingTo("50.00");
+        assertThat(p2.at("/content/0/price").decimalValue()).isEqualByComparingTo("50.00");
+        // IDs must be distinct across pages (no gaps, no duplicates)
+        String id0 = p0.at("/content/0/id").asText();
+        String id1 = p1.at("/content/0/id").asText();
+        String id2 = p2.at("/content/0/id").asText();
+        assertThat(id0).isNotEqualTo(id1);
+        assertThat(id1).isNotEqualTo(id2);
+        assertThat(id0).isNotEqualTo(id2);
+    }
+
+    @Test
+    void sortByPriceDescWithEqualPricesIsStableById() {
+        // Equal prices in DESC sort must also be broken by ID ASC deterministically.
+        create("EQ-01", "Product A", "75.00");
+        create("EQ-02", "Product B", "75.00");
+
+        JsonNode p0 = http.getForObject("/api/products?sort={s}&page=0&size=1", JsonNode.class, "price,desc");
+        JsonNode p1 = http.getForObject("/api/products?sort={s}&page=1&size=1", JsonNode.class, "price,desc");
+
+        assertThat(p0.get("totalElements").asInt()).isEqualTo(2);
+        assertThat(p0.at("/content/0/id").asText()).isNotEqualTo(p1.at("/content/0/id").asText());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"name,asc", "price", "asc", "desc", "price,DESC", "price,ASC",
+            "id,asc", "createdAt,asc", "random", "price,asc,extra"})
+    void rejectsInvalidSortValues(String sort) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?sort={sort}", JsonNode.class, sort);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void sortCombinesWithCategoryFilter() {
+        createWithCategory("CAT-01", "Cheap Book",     "10.00", "books");
+        createWithCategory("CAT-02", "Expensive Book", "80.00", "books");
+        createWithCategory("CAT-03", "Tech",           "30.00", "tech");
+
+        JsonNode body = http.getForObject(
+                "/api/products?category={cat}&sort={sort}", JsonNode.class, "books", "price,desc");
+
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+        assertThat(body.at("/content/0/price").decimalValue()).isEqualByComparingTo("80.00");
+        assertThat(body.at("/content/1/price").decimalValue()).isEqualByComparingTo("10.00");
+        body.get("content").forEach(p -> assertThat(p.get("category").asText()).isEqualTo("books"));
+    }
+
+    @Test
+    void sortCombinesWithPriceRangeFilter() {
+        create("PR-01", "Cheap",     "10.00");
+        create("PR-02", "Mid",       "50.00");
+        create("PR-03", "Expensive", "100.00");
+        create("PR-04", "VeryExp",  "200.00");
+
+        JsonNode body = http.getForObject(
+                "/api/products?minPrice={min}&maxPrice={max}&sort={sort}",
+                JsonNode.class, "10.00", "100.00", "price,desc");
+
+        assertThat(body.get("totalElements").asInt()).isEqualTo(3);
+        assertThat(body.at("/content/0/price").decimalValue()).isEqualByComparingTo("100.00");
+        assertThat(body.at("/content/1/price").decimalValue()).isEqualByComparingTo("50.00");
+        assertThat(body.at("/content/2/price").decimalValue()).isEqualByComparingTo("10.00");
+    }
+
+    @Test
+    void sortRespectsPagination() {
+        create("PG-01", "A", "30.00");
+        create("PG-02", "B", "10.00");
+        create("PG-03", "C", "50.00");
+        create("PG-04", "D", "20.00");
+
+        JsonNode page0 = http.getForObject(
+                "/api/products?sort={sort}&page=0&size=2", JsonNode.class, "price,asc");
+        JsonNode page1 = http.getForObject(
+                "/api/products?sort={sort}&page=1&size=2", JsonNode.class, "price,asc");
+
+        assertThat(page0.get("totalElements").asInt()).isEqualTo(4);
+        assertThat(page0.get("totalPages").asInt()).isEqualTo(2);
+        assertThat(page0.get("content").size()).isEqualTo(2);
+        assertThat(page1.get("content").size()).isEqualTo(2);
+        // Page 0: cheapest two
+        assertThat(page0.at("/content/0/price").decimalValue()).isEqualByComparingTo("10.00");
+        assertThat(page0.at("/content/1/price").decimalValue()).isEqualByComparingTo("20.00");
+        // Page 1: next two
+        assertThat(page1.at("/content/0/price").decimalValue()).isEqualByComparingTo("30.00");
+        assertThat(page1.at("/content/1/price").decimalValue()).isEqualByComparingTo("50.00");
+        // No duplicate IDs across pages
+        assertThat(page0.at("/content/0/id")).isNotEqualTo(page1.at("/content/0/id"));
+        assertThat(page0.at("/content/1/id")).isNotEqualTo(page1.at("/content/1/id"));
+    }
+
+    @Test
+    void omittingSortPreservesDefaultBehaviourAndTotals() {
+        // Without sort, all products are returned (correct totals, no price ordering applied).
+        // Insert in descending price order so that ascending price sort would reverse the result,
+        // allowing us to verify the default path is taken.
+        create("DEF-01", "Most expensive",  "100.00");
+        create("DEF-02", "Mid",              "50.00");
+        create("DEF-03", "Cheapest",         "10.00");
+
+        JsonNode noSort   = http.getForObject("/api/products", JsonNode.class);
+        JsonNode priceAsc = http.getForObject("/api/products?sort={s}", JsonNode.class, "price,asc");
+
+        assertThat(noSort.get("totalElements").asInt()).isEqualTo(3);
+        assertThat(priceAsc.get("totalElements").asInt()).isEqualTo(3);
+        // Default order != price,asc order when prices are inserted in reverse order
+        assertThat(noSort.at("/content/0/sku").asText()).isEqualTo("DEF-01");
+        assertThat(priceAsc.at("/content/0/price").decimalValue()).isEqualByComparingTo("10.00");
+    }
+
     private ResponseEntity<JsonNode> create(String sku, String name, String price) {
         return http.postForEntity("/api/products", request(sku, name, price), JsonNode.class);
     }

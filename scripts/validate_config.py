@@ -22,6 +22,22 @@ def main():
     config = json.loads((ROOT / "opencode.json").read_text())
     assert config["share"] == "disabled", "OpenCode sessions must remain private"
     assert config["agent"]["reviewer"]["permission"] == {"*": "deny"}
+    # OpenCode 1.19.3 appends an assistant prefill at the agent step boundary;
+    # Claude 4.6 rejects that request. The external review policy enforces 1 step.
+    assert "steps" not in config["agent"]["reviewer"], "Limit review steps in the supervisor, not with CLI assistant prefill"
+    policy = json.loads((ROOT / "config/ai-policy.json").read_text())
+    loop = json.loads((ROOT / "config/engineering-loop.json").read_text())
+    assert loop["version"] == 1 and loop["maxAttempts"] == 2
+    assert policy["profiles"]["correction"]["maxEstimatedCostUsd"] == loop["maxCorrectionEstimatedUsd"]
+    assert policy["profiles"]["review"]["maxEstimatedCostUsd"] == loop["maxReviewEstimatedUsd"]
+    assert loop["maxEstimatedBudgetUsd"] == loop["maxReviewEstimatedUsd"] + loop["maxAttempts"] * (
+        loop["maxCorrectionEstimatedUsd"] + loop["maxReviewEstimatedUsd"]
+    )
+    correction_jobs = yaml.safe_load((ROOT / ".github/workflows/ai-correct.yml").read_text())["jobs"]
+    for job in ("prepare", "report"):
+        assert correction_jobs[job]["permissions"]["pull-requests"] == "write", "PR conversation comments require PR write access"
+    assert correction_jobs["correct"]["permissions"]["contents"] == "read"
+    assert correction_jobs["correct"]["permissions"]["pull-requests"] == "read"
     for directory in ("application", "inference"):
         base = ROOT / "infra/kubernetes" / directory
         data = yaml.safe_load((base / "kustomization.yaml").read_text())

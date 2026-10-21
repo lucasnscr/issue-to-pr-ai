@@ -4,16 +4,23 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
+import java.math.BigDecimal;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
+@Validated
 @RestController
 @RequestMapping("/api/products")
 @Tag(name = "Products", description = "Product catalog CRUD")
@@ -25,21 +32,49 @@ public class ProductController {
     }
 
     @GetMapping
-    @Operation(summary = "List products with stable pagination, optionally filtered by category")
+    @Operation(summary = "List products with stable pagination, optionally filtered by category and/or price range, " +
+            "and optionally sorted by price")
     public ProductPage list(
             @Parameter(description = "Filter by category (case-insensitive, trims surrounding spaces). " +
                     "Returns 400 if present but blank.")
             @RequestParam(required = false) Optional<String> category,
+            @Parameter(description = "Minimum price (inclusive). Must be >= 0.00 and have at most 2 decimal places.")
+            @RequestParam(required = false)
+            @DecimalMin(value = "0.00", message = "minPrice must be >= 0.00")
+            @Digits(integer = 10, fraction = 2, message = "minPrice must have at most 2 decimal places")
+            BigDecimal minPrice,
+            @Parameter(description = "Maximum price (inclusive). Must be >= 0.00 and have at most 2 decimal places.")
+            @RequestParam(required = false)
+            @DecimalMin(value = "0.00", message = "maxPrice must be >= 0.00")
+            @Digits(integer = 10, fraction = 2, message = "maxPrice must have at most 2 decimal places")
+            BigDecimal maxPrice,
+            @Parameter(description = "Sort order for the result. Accepted values: 'price,asc' (ascending by price) " +
+                    "and 'price,desc' (descending by price). Equal prices are broken by ID ascending. " +
+                    "Omit to keep the default order (creation date + ID). Any other value returns 400.")
+            @RequestParam(required = false)
+            @Pattern(regexp = "price,(asc|desc)", message = "sort must be 'price,asc' or 'price,desc'")
+            String sort,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        if (category.isPresent()) {
-            if (category.get().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Query parameter 'category' must not be blank.");
-            }
-            return service.listByCategory(category.get(), page, size);
+
+        if (category.isPresent() && category.get().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Query parameter 'category' must not be blank.");
         }
-        return service.list(page, size);
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "minPrice must not be greater than maxPrice.");
+        }
+
+        String categoryValue = category.orElse(null);
+        return service.listWithFilters(categoryValue, minPrice, maxPrice, sort, page, size);
+    }
+
+    @GetMapping("/categories")
+    @Operation(summary = "List all categories present in the catalog, without duplicates, in ascending alphabetical order",
+            description = "Returns an unpaginated array of normalized category names. An empty catalog returns an empty array.")
+    public List<String> categories() {
+        return service.listCategories();
     }
 
     @GetMapping("/{id}")
