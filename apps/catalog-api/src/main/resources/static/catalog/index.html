@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de produtos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Ir para o conteúdo principal</a>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <h1>Catálogo de produtos</h1>
+      <nav aria-label="Links úteis">
+        <a href="/swagger-ui/index.html" target="_blank" rel="noopener">Swagger / OpenAPI</a>
+        <span class="env-badge" aria-label="Ambiente de demonstração">Demo</span>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content" class="main-content">
+    <!-- Filtros -->
+    <section class="filters-section" aria-label="Filtros e ordenação">
+      <form id="filter-form" class="filter-form" novalidate>
+        <div class="filter-group">
+          <label for="filter-category">Categoria</label>
+          <input id="filter-category" type="text" name="category"
+                 placeholder="Todas as categorias" autocomplete="off">
+        </div>
+        <div class="filter-group">
+          <label for="filter-min-price">Preço mínimo (R$)</label>
+          <input id="filter-min-price" type="number" name="minPrice"
+                 min="0" step="0.01" placeholder="0,00">
+        </div>
+        <div class="filter-group">
+          <label for="filter-max-price">Preço máximo (R$)</label>
+          <input id="filter-max-price" type="number" name="maxPrice"
+                 min="0" step="0.01" placeholder="Sem limite">
+        </div>
+        <div class="filter-group">
+          <label for="filter-sort">Ordenação</label>
+          <select id="filter-sort" name="sort">
+            <option value="">Padrão (data de criação)</option>
+            <option value="price,asc">Preço crescente</option>
+            <option value="price,desc">Preço decrescente</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filter-size">Itens por página</label>
+          <select id="filter-size" name="size">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-secondary">Filtrar</button>
+          <button type="button" id="clear-filters-btn" class="btn btn-ghost">Limpar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Ação principal -->
+    <div class="toolbar">
+      <div id="status-bar" role="status" aria-live="polite" aria-atomic="true" class="status-bar"></div>
+      <button id="new-product-btn" type="button" class="btn btn-primary">+ Novo produto</button>
+    </div>
+
+    <!-- Tabela de produtos -->
+    <section aria-label="Lista de produtos">
+      <div id="loading" class="loading-state" hidden>Carregando...</div>
+      <div id="empty-state" class="empty-state" hidden>Nenhum produto encontrado.</div>
+      <div id="error-state" class="error-state" hidden role="alert"></div>
+
+      <div id="table-wrapper" class="table-wrapper" hidden>
+        <table class="product-table" aria-label="Produtos">
+          <thead>
+            <tr>
+              <th scope="col">SKU</th>
+              <th scope="col">Nome</th>
+              <th scope="col">Categoria</th>
+              <th scope="col">Preço</th>
+              <th scope="col"><span class="sr-only">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody id="product-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Paginação -->
+      <nav id="pagination" class="pagination" aria-label="Paginação" hidden>
+        <button id="prev-page-btn" type="button" class="btn btn-ghost" aria-label="Página anterior"
+                disabled>&#8592; Anterior</button>
+        <span id="page-info" class="page-info"></span>
+        <button id="next-page-btn" type="button" class="btn btn-ghost" aria-label="Próxima página"
+                disabled>Próxima &#8594;</button>
+      </nav>
+    </section>
+  </main>
+
+  <!-- Modal do formulário de produto -->
+  <div id="product-modal" class="modal-overlay" hidden role="dialog"
+       aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <header class="modal-header">
+        <h2 id="modal-title">Novo produto</h2>
+        <button type="button" class="btn-close" id="modal-close-btn"
+                aria-label="Fechar">&#x2715;</button>
+      </header>
+
+      <div id="form-error" class="form-error" role="alert" aria-live="polite" hidden></div>
+
+      <form id="product-form" class="product-form" novalidate>
+        <input type="hidden" id="product-id">
+
+        <div class="form-group">
+          <label for="sku">SKU <span class="required" aria-hidden="true">*</span></label>
+          <input id="sku" type="text" name="sku" required
+                 autocomplete="off"
+                 aria-describedby="sku-hint">
+          <span id="sku-hint" class="field-hint">2–40 caracteres alfanuméricos, _ ou -; inicia com letra ou dígito.</span>
+          <span id="sku-error" class="field-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="name">Nome <span class="required" aria-hidden="true">*</span></label>
+          <input id="name" type="text" name="name" required maxlength="120"
+                 autocomplete="off">
+          <span id="name-error" class="field-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Descrição</label>
+          <textarea id="description" name="description" maxlength="2000" rows="3"></textarea>
+          <span id="description-error" class="field-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="category">Categoria <span class="required" aria-hidden="true">*</span></label>
+          <input id="category" type="text" name="category" required maxlength="80"
+                 autocomplete="off">
+          <span id="category-error" class="field-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="price">Preço (R$) <span class="required" aria-hidden="true">*</span></label>
+          <input id="price" type="number" name="price" required
+                 min="0.01" step="0.01"
+                 aria-describedby="price-hint">
+          <span id="price-hint" class="field-hint">Valor mínimo: R$ 0,01. Máximo duas casas decimais.</span>
+          <span id="price-error" class="field-error" role="alert" aria-live="polite"></span>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="form-cancel-btn">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="form-submit-btn">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de confirmação de exclusão -->
+  <div id="confirm-modal" class="modal-overlay" hidden role="dialog"
+       aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal-box modal-box--sm">
+      <header class="modal-header">
+        <h2 id="confirm-title">Confirmar exclusão</h2>
+      </header>
+      <p id="confirm-message" class="confirm-message"></p>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" id="confirm-cancel-btn">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="confirm-delete-btn">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
