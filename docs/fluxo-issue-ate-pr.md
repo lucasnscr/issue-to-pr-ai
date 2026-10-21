@@ -243,10 +243,8 @@ Há dois caminhos para iniciar [AI review](../.github/workflows/ai-review.yml):
 | Dispatch do publisher ou manual | Branch padrão, PR aberta do próprio repositório; permite draft. Ator manual precisa de escrita |
 | Evento de PR | PR do próprio repositório, fora de draft, com `ai:ready`, em abertura, novo commit, reabertura ou saída de draft |
 
-No fluxo padrão, a label da issue não é copiada automaticamente para a PR. O dispatch inicial permite
-analisar a draft sem essa label. Quando a issue tem também `ai:autofix`, o publisher adiciona ambas
-as labels à PR para autorizar o ciclo limitado. Nos demais casos, adicione `ai:ready` à própria PR
-para habilitar os eventos automáticos posteriores.
+O publisher copia `ai:ready` para a PR. Quando a issue tem também `ai:autofix`, transfere
+essa autorização adicional para o ciclo limitado. O dispatch inicial permite analisar a draft.
 Adicionar apenas a label não é um evento configurado para iniciar revisão; use dispatch se necessário.
 Novos commits em uma draft também precisam de dispatch ou de uma transição elegível para pronta.
 
@@ -254,7 +252,8 @@ Novos commits em uma draft também precisam de dispatch ou de uma transição el
 gh workflow run ai-review.yml --repo lucasnscr/issue-to-pr-ai --ref main -f pull_request=NUMERO
 ```
 
-O workflow usa ferramentas do checkout confiável da base. Ele obtém o patch pela API e acrescenta
+Os eventos automáticos são encaminhados para dispatch na branch padrão. O workflow usa
+ferramentas desse checkout confiável. Ele obtém o patch pela API e acrescenta
 trechos limitados de arquivos Java da base, incluindo setup/helpers de testes e os normalizadores
 da entidade e do DTO quando a área de produtos muda. O agente revisor
 tem todas as ferramentas negadas: não faz checkout do head, não executa os testes e não altera o código.
@@ -288,6 +287,12 @@ Para considerar a PR revisada:
 - Ler os achados no contexto do código completo e reproduzir os problemas relevantes.
 - Conferir CI, critérios de aceitação e limitações declaradas na PR.
 - Registrar a avaliação do mantenedor e solicitar ajustes ou decidir a integração.
+
+O check separado `AI review gate` exige parecer/CI do SHA atual e triagem rastreável de todos
+os achados. Use `/ai-triage` com ID, execução, SHA completo e justificativa. Uma parada do
+corretor exige reconhecimento após terminar as execuções, preservando tentativas e reservas.
+Novo commit invalida decisões anteriores; remover labels não apaga a autorização registrada.
+O [guia de triagem](review-triage.md) explica comandos, permissões e proteção da branch.
 
 Uma execução real anterior levantou hipóteses equivocadas sobre código fora do diff.
 Trechos da base ajudam a reduzir esse problema, mas não eliminam falsos positivos ou defeitos omitidos.
@@ -356,6 +361,7 @@ Uma demonstração completa deve permitir navegar entre:
 5. Comentário da revisão por IA associado ao commit, quando o patch é elegível.
 6. Avaliação do mantenedor, com achados aceitos ou descartados e decisão registrada.
 7. Quando houver corretor, tentativas, commits publicados e estado final do acompanhamento.
+8. Recibos de triagem e check `AI review gate` do commit atual.
 
 Há exemplos reais de implementação em [PR #14: faixa de preço](https://github.com/lucasnscr/issue-to-pr-ai/pull/14)
 e [PR #17: ordenação](https://github.com/lucasnscr/issue-to-pr-ai/pull/17), e de
