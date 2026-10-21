@@ -119,8 +119,10 @@ Evidência: teste, contrato ou trecho de código que sustenta a conclusão
 Ação e responsável:
 ```
 
-O registro de triagem é manual hoje. Ele não altera o envelope do bot nem o histórico das
-tentativas. Para interromper novas correções, remova `ai:autofix` e cancele execuções já
+Registre também a decisão pelo comando `/ai-triage` do [guia de triagem](review-triage.md).
+Ele exige escrita, SHA e revisão atuais, identificador e justificativa; publica um recibo
+sem alterar o envelope do bot nem o histórico das tentativas. Achados confirmados ou em
+investigação mantêm `AI review gate` bloqueado. Para interromper novas correções, remova `ai:autofix` e cancele execuções já
 iniciadas. Recolocar a label não zera tentativas nem retoma automaticamente um ciclo parado.
 Uma nova revisão sem achados com CI aprovada pode registrar `ready-for-human` preservando
 o histórico. Os demais casos exigem avaliação deliberada do mantenedor.
@@ -134,10 +136,11 @@ o histórico. Os demais casos exigem avaliação deliberada do mantenedor.
 - Consumo conhecido/indisponível registrado, junto das tentativas consumidas.
 - Aprovação e merge decididos conforme a política da equipe; depois, CI da base conferida.
 
-`ready-for-human` é uma entrada para essa avaliação. `needs-human` exige uma decisão de
-triagem. O workflow pode ficar verde ao registrar uma parada; hoje o estado do ciclo não
-é um check obrigatório próprio. Portanto, CI verde e um comentário da IA, isoladamente,
-não satisfazem esse acordo de entrega.
+`ready-for-human` é uma entrada para essa avaliação. `needs-human` exige triagem e
+reconhecimento explícito da parada. O workflow pode ficar verde ao registrar uma parada;
+`AI review gate` é o check separado que reflete a liberação do commit. Configure-o como
+obrigatório na proteção de branch. CI verde e um comentário da IA, isoladamente, não
+satisfazem esse acordo de entrega.
 
 ## Adotar em outro repositório
 

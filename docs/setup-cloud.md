@@ -62,7 +62,10 @@ incluindo trechos da base, é limitado a 112 mil bytes; o patch nunca é truncad
 O comentário da IA é consultivo e não representa aprovação.
 
 O ciclo opcional pode registrar `needs-human` em um workflow tecnicamente verde. Confira o
-comentário de acompanhamento, a CI do SHA atual e a triagem antes de integrar a PR.
+comentário de acompanhamento e o check separado `AI review gate`. Ele exige CI e parecer
+do SHA atual, triagem autorizada e reconhecimento de paradas após terminar as correções.
+Siga o [guia de triagem e configuração da proteção](review-triage.md) para exigir esse check
+no repositório de destino; copiar os workflows não aplica regras de branch.
 O [modelo de trabalho](modelo-de-trabalho.md) define esses critérios; o
 [teste real](validacao-engineering-loop.md) registra duas correções e a parada no limite.
 

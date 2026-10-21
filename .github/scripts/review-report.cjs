@@ -49,7 +49,7 @@ function renderReview(value) {
   validateReview(value);
   return value.summary + '\n\n' + (value.findings.length ? value.findings.map((finding, index) =>
     `### F${index + 1} — ${finding.priority}: ${finding.title}\n\n` +
-    `\`${finding.path}:${finding.line}\`\n\n${finding.body}`).join('\n\n') : 'Nenhum achado acionável nesta revisão.');
+    `\`${finding.path}:${finding.line}\`\n\n${finding.body}\n\nID para triagem: \`${require('./review-triage.cjs').findingId(finding)}\``).join('\n\n') : 'Nenhum achado acionável nesta revisão.');
 }
 
 function validateEnvelope(value) {

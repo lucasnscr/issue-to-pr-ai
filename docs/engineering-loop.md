@@ -138,6 +138,12 @@ O estado não tem um comando automático de reset. Após uma parada, o mantenedo
 artefatos e corrige a PR manualmente. Uma nova revisão sem achados com CI aprovada pode
 registrar `ready-for-human` para o novo SHA, preservando o histórico e os limites consumidos.
 
+O check separado `AI review gate` exige parecer/CI do SHA atual e decisões rastreáveis.
+Use `/ai-triage` para classificar achados; uma parada exige `acknowledge` do estado atual
+depois de encerrar as execuções. Isso não altera o estado do controlador nem recupera
+reservas. O sucesso técnico de um job que registrou `needs-human` não libera o check.
+Comandos, papéis e proteção de branch: [guia de triagem](review-triage.md).
+
 ## Verificação desta implementação
 
 Os testes Node exercitam revisão estruturada, autorização, reserva, publicação simulada,

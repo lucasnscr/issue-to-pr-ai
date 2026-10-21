@@ -1,0 +1,31 @@
+name: AI review gate events
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+  issue_comment:
+    types: [created, edited, deleted]
+  workflow_run:
+    workflows: [CI, AI review, AI engineering loop]
+    types: [completed]
+permissions:
+  contents: read
+  actions: write
+  issues: write
+  pull-requests: write
+  checks: write
+jobs:
+  route:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Metadata-only privileged workflow: never checkout the PR head, execute
+      # candidate code, download candidate artifacts, or expose a model secret.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { route } = require('./.github/scripts/review-gate.cjs');
+            await route({ github, context, core });
