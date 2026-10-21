@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "catalog-review-v1",
+  "cases": [
+    "cases/pagination-truncates.json",
+    "cases/raw-category-duplicates.json",
+    "cases/entity-normalization-exists.json",
+    "cases/selected-expression-ordering.json",
+    "cases/optional-description.json",
+    "cases/unchanged-test-cleanup.json"
+  ]
+}

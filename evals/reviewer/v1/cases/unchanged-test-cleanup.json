@@ -1,0 +1,11 @@
+{
+  "id": "unchanged-test-cleanup",
+  "base": "Product.update(ProductRequest request) normalizes category with request.category().trim().toLowerCase(Locale.ROOT).\nProductRequest: @NotBlank String category; @Size(max=2000) String description. Description is optional. Product.update maps null description to an empty string.\nPostgreSQL migration: category VARCHAR(80) NOT NULL. The API GET /api/products/categories promises all normalized categories, distinct and sorted, with no product paging. Hibernate/PostgreSQL is the supported persistence stack.\nExisting ProductCategoriesIT setup:\n@BeforeEach void cleanDatabase() { repository.deleteAll(); }\nprivate URI create(String sku,String category) posts through TestRestTemplate, asserts 201 and returns Location. The application implements findDistinctCategories with LOWER(TRIM), no paging, and SQL ordering. Tests run sequentially with real PostgreSQL.",
+  "files": [
+    {
+      "path": "apps/catalog-api/src/test/java/dev/continuousai/catalog/product/ProductCategoriesIT.java",
+      "patch": "@@ -0,0 +1,10 @@\n+@Test\n+void removesCategoryOnlyAfterDeletingItsLastProduct() {\n+    URI a = create(\"CAT-01\", \"tech\");\n+    URI b = create(\"CAT-02\", \"TECH\");\n+    create(\"CAT-03\", \"books\");\n+    http.delete(a.toString());\n+    assertThat(http.getForObject(\"/api/products/categories\", String[].class)).containsExactly(\"books\", \"tech\");\n+    http.delete(b.toString());\n+    assertThat(http.getForObject(\"/api/products/categories\", String[].class)).containsExactly(\"books\");\n+}"
+    }
+  ],
+  "expected": []
+}

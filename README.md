@@ -163,6 +163,7 @@ exigiram avaliação assistida. `ready-for-human` e CI verde não representam ap
 | Entender componentes, estados e separação de credenciais | [Arquitetura](docs/architecture.md) |
 | Configurar GitHub e operar o ciclo | [Configuração](docs/setup-cloud.md) e [engineering loop](docs/engineering-loop.md) |
 | Conferir o que foi executado | [Verificação](docs/verification.md) e [teste real](docs/validacao-engineering-loop.md) |
+| Avaliar a qualidade do revisor com casos versionados | [Avaliação do revisor](docs/reviewer-evaluation.md) |
 | Priorizar próximos incrementos | [Roadmap](docs/roadmap.md) |
 
 O fluxo atual conhece os caminhos e validadores do catálogo Java. A adoção em outra aplicação

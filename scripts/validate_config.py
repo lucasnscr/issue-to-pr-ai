@@ -30,6 +30,11 @@ def main():
     assert loop["version"] == 1 and loop["maxAttempts"] == 2
     assert policy["profiles"]["correction"]["maxEstimatedCostUsd"] == loop["maxCorrectionEstimatedUsd"]
     assert policy["profiles"]["review"]["maxEstimatedCostUsd"] == loop["maxReviewEstimatedUsd"]
+    evaluation = json.loads((ROOT / "config/review-evaluation.json").read_text())
+    assert evaluation["version"] == 1 and evaluation["maxLiveCases"] == 6
+    assert policy["profiles"]["review"]["maxEstimatedCostUsd"] <= evaluation["maxEstimatedBudgetUsd"] <= 2
+    evaluation_workflow = (ROOT / ".github/workflows/ai-review-evaluation.yml").read_text()
+    assert f'opencode-ai@{evaluation["opencodeVersion"]}' in evaluation_workflow
     assert loop["maxEstimatedBudgetUsd"] == loop["maxReviewEstimatedUsd"] + loop["maxAttempts"] * (
         loop["maxCorrectionEstimatedUsd"] + loop["maxReviewEstimatedUsd"]
     )

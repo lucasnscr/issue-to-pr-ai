@@ -1,0 +1,11 @@
+{
+  "id": "optional-description",
+  "base": "Product.update(ProductRequest request) normalizes category with request.category().trim().toLowerCase(Locale.ROOT).\nProductRequest: @NotBlank String category; @Size(max=2000) String description. Description is optional. Product.update maps null description to an empty string.\nPostgreSQL migration: category VARCHAR(80) NOT NULL. The API GET /api/products/categories promises all normalized categories, distinct and sorted, with no product paging. Hibernate/PostgreSQL is the supported persistence stack.",
+  "files": [
+    {
+      "path": "apps/catalog-api/src/test/java/dev/continuousai/catalog/product/ProductCategoriesIT.java",
+      "patch": "@@ -0,0 +1,7 @@\n+private URI create(String sku, String category) {\n+    ResponseEntity<Void> result = http.postForEntity(\"/api/products\", Map.of(\n+        \"sku\", sku, \"name\", \"Test product\", \"category\", category,\n+        \"price\", new BigDecimal(\"10.00\")), Void.class);\n+    assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);\n+    return result.getHeaders().getLocation();\n+}"
+    }
+  ],
+  "expected": []
+}

@@ -1,0 +1,11 @@
+{
+  "id": "entity-normalization-exists",
+  "base": "Product.update(ProductRequest request) normalizes category with request.category().trim().toLowerCase(Locale.ROOT).\nProductRequest: @NotBlank String category; @Size(max=2000) String description. Description is optional. Product.update maps null description to an empty string.\nPostgreSQL migration: category VARCHAR(80) NOT NULL. The API GET /api/products/categories promises all normalized categories, distinct and sorted, with no product paging. Hibernate/PostgreSQL is the supported persistence stack.\nProductRepository.findDistinctCategories uses SELECT DISTINCT LOWER(TRIM(p.category)) FROM Product p ORDER BY LOWER(TRIM(p.category)) ASC.",
+  "files": [
+    {
+      "path": "apps/catalog-api/src/main/java/dev/continuousai/catalog/product/ProductService.java",
+      "patch": "@@ -0,0 +1,3 @@\n+public List<String> listCategories() {\n+    return repository.findDistinctCategories();\n+}"
+    }
+  ],
+  "expected": []
+}
