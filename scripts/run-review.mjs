@@ -3,13 +3,14 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runGovernedOpenCode } from './run-governed-opencode.mjs';
 import { interpretLiveResult } from './run-live-test.mjs';
+import reviewLimits from '../.github/scripts/review-limits.cjs';
 
 export async function runReview({ env = process.env, run = runGovernedOpenCode } = {}) {
   const model = env.MODEL;
   const directory = env.REVIEW_DIRECTORY;
   if (!model || !directory) throw new Error('MODEL and REVIEW_DIRECTORY are required.');
   const patch = readFileSync(join(directory, 'context.txt'), 'utf8');
-  if (!patch.trim() || Buffer.byteLength(patch) > 40000) throw new Error('Review context is empty or exceeds its limit.');
+  if (!patch.trim() || Buffer.byteLength(patch) > reviewLimits.maxContextBytes) throw new Error('Review context is empty or exceeds its limit.');
   // Supply bounded plain text without attachment preprocessing. The reviewer
   // keeps every tool denied, and the wrapper preserves sanitized API diagnostics.
   const result = await run([
