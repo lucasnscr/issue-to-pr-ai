@@ -6,7 +6,7 @@ Use apenas o catálogo público com dados fictícios. Os casos propostos são hi
 
 - Confira CI da `main`, credencial válida e limites em `config/ai-policy.json`.
 - Separe os links da issue, execução, artefatos, draft PR e comentário de revisão.
-- Inicie `docker compose up --build -d` e abra `/swagger-ui.html`.
+- Inicie `docker compose up --build -d` e abra `/` para a interface ou `/swagger-ui.html` para explorar a API.
 - Tenha o PDF da apresentação e uma gravação/evidência de execução pronta.
 - Uma geração real pode levar vários minutos. Dispare no início e use a execução concluída como reserva.
 
@@ -17,11 +17,12 @@ Use apenas o catálogo público com dados fictícios. Os casos propostos são hi
 | 0–2 min | Uma issue com critérios de aceite e escopo pequeno |
 | 2–5 min | Gate de permissão, inferência sem token de publicação e validação independente |
 | 5–8 min | Primeira tentativa histórica bloqueada pelos testes e segunda tentativa guiada aprovada |
-| 8–11 min | API completa com PostgreSQL/Docker, PR e revisão consultiva vinculada ao SHA |
+| 8–11 min | Interface, API e PostgreSQL/Docker, PR e revisão consultiva vinculada ao SHA |
 | 11–13 min | Casos de uso em engenharia e Cursor como opção de agente |
 | 13–15 min | Limites, custo estimado, piloto e perguntas |
 
-O escopo completo é API, banco e infraestrutura, sem interface web própria. O Swagger é o explorador da API.
+A aplicação inclui interface web própria, API, banco e infraestrutura. O Swagger continua como explorador da API.
+Na interface, demonstre cadastro, filtros, edição e exclusão de um produto sintético; veja o [roteiro do frontend](frontend.md).
 O teste Kubernetes local inclui persistência após recriar o Pod. vLLM/ARC continuam dependentes de GPU e credenciais apropriadas.
 
 ## Tarefa nova
