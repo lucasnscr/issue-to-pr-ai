@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 public interface ProductRepository extends JpaRepository<Product, UUID> {
 
-    @Query("SELECT DISTINCT p.category FROM Product p ORDER BY p.category ASC")
+    @Query("SELECT DISTINCT LOWER(TRIM(p.category)) FROM Product p ORDER BY LOWER(TRIM(p.category)) ASC")
     List<String> findDistinctCategories();
 
     @Query("SELECT p FROM Product p WHERE LOWER(TRIM(p.category)) = LOWER(TRIM(:category))")
