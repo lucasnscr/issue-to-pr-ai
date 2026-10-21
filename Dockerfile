@@ -3,9 +3,8 @@ WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
 COPY apps/catalog-api/pom.xml apps/catalog-api/pom.xml
-RUN ./mvnw -B -ntp dependency:go-offline
 COPY apps/catalog-api/src apps/catalog-api/src
-RUN ./mvnw -B -ntp package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -ntp package -DskipTests
 
 FROM eclipse-temurin:21-jre-jammy
 RUN groupadd --gid 10001 catalog && useradd --uid 10001 --gid catalog --no-create-home catalog
