@@ -25,6 +25,21 @@ flowchart LR
   A -. inferência .-> L[Modelo gerenciado ou vLLM privado]
 ```
 
+## Interface web
+
+A aplicação inclui uma interface em português servida pelo próprio Spring Boot.
+Não requer dependências externas, login ou configuração adicional.
+
+| URL | Descrição |
+|---|---|
+| `http://localhost:8080/` | Interface web do catálogo |
+| `http://localhost:8080/swagger-ui/index.html` | Swagger / OpenAPI |
+| `http://localhost:8080/actuator/health/readiness` | Health check |
+
+A interface permite listar, filtrar (categoria, faixa de preço, ordenação), paginar,
+cadastrar, editar e excluir produtos usando os endpoints da API existente.
+Consulte [docs/frontend.md](docs/frontend.md) para o roteiro manual e limitações verificadas.
+
 ## Executar localmente
 
 Requisitos: Docker com Compose. Para executar testes ou rodar a JVM diretamente, Java 21.
@@ -35,7 +50,8 @@ docker compose up --build -d
 curl --fail http://localhost:8080/actuator/health/readiness
 ```
 
-Acesse o [Swagger UI](http://localhost:8080/swagger-ui.html) e o
+Acesse a [interface web](http://localhost:8080/), o
+[Swagger UI](http://localhost:8080/swagger-ui/index.html) e o
 [OpenAPI JSON](http://localhost:8080/v3/api-docs).
 
 ```sh

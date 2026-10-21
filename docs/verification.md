@@ -1,6 +1,9 @@
 # Verificação atual: 21/10/2026
 
-A API, os workflows e os controles estão integrados à `main`. O escopo completo deste laboratório é API, PostgreSQL, Docker e Kubernetes local, sem interface web própria e sem GPU.
+A API, os workflows e os controles foram validados no laboratório com PostgreSQL, Docker e Kubernetes local, sem GPU.
+A [PR #24](https://github.com/lucasnscr/issue-to-pr-ai/pull/24) acrescenta uma interface web própria, servida na mesma origem.
+Os 12 testes de entrega de assets/HTTP do frontend se somam aos 67 testes Java existentes; não executam JavaScript.
+O [roteiro de navegador](frontend.md) cobre as interações, foco dos diálogos, preço em 390 px e troca de filtros durante carregamento.
 
 | Evidência | Resultado |
 |---|---|
