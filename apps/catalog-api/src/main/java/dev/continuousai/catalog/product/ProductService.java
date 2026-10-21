@@ -1,5 +1,6 @@
 package dev.continuousai.catalog.product;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -23,6 +24,25 @@ public class ProductService {
         String normalized = category.trim();
         return ProductPage.from(
                 repository.findByCategory(normalized, PageRequest.of(page, size, Sort.by("createdAt", "id"))));
+    }
+
+    public ProductPage listWithFilters(String category, BigDecimal minPrice, BigDecimal maxPrice,
+                                       int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt", "id"));
+        boolean hasCategory = category != null;
+        boolean hasPriceFilter = minPrice != null || maxPrice != null;
+
+        if (hasCategory && hasPriceFilter) {
+            return ProductPage.from(
+                    repository.findByCategoryAndPriceRange(category.trim(), minPrice, maxPrice, pageable));
+        }
+        if (hasCategory) {
+            return ProductPage.from(repository.findByCategory(category.trim(), pageable));
+        }
+        if (hasPriceFilter) {
+            return ProductPage.from(repository.findByPriceRange(minPrice, maxPrice, pageable));
+        }
+        return ProductPage.from(repository.findAll(pageable));
     }
 
     public ProductResponse find(UUID id) {
