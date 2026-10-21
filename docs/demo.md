@@ -26,8 +26,10 @@ O teste Kubernetes local inclui persistência após recriar o Pod. vLLM/ARC cont
 
 ## Tarefa nova
 
-Use [faixa de preço](demo-issues/02-price-range.md) ou [ordenação](demo-issues/03-price-ordering.md).
-Não repita a issue de categoria em uma base que já possui essa funcionalidade.
+Categoria, faixa de preço e ordenação já foram implementadas. Use suas execuções concluídas
+como evidência. Para uma tarefa nova ao vivo, há o exercício opcional de
+[listar categorias](demo-issues/04-list-categories.md), ainda não implementado.
+Não repita issues cujo aceite já esteja atendido na base.
 Na issue autorizada comente `/oc implemente esta issue` ou `@claude implemente esta issue`.
 A PR só aparece após os testes. A IA não decide o merge.
 

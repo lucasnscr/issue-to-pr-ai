@@ -1,0 +1,153 @@
+{
+  "asOf": "2026-10-21",
+  "talkDate": "2026-10-22",
+  "repoUrl": "https://github.com/lucasnscr/issue-to-pr-ai",
+  "historical": {
+    "firstRunUrl": "https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39536145613",
+    "firstRunIntegrationFailures": 6,
+    "successfulRunUrl": "https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39537190954",
+    "prUrl": "https://github.com/lucasnscr/issue-to-pr-ai/pull/3",
+    "javaTests": 28,
+    "nodeTests": 32,
+    "totalTests": 60,
+    "durationSeconds": 371,
+    "model": "anthropic/claude-sonnet-4-6",
+    "agent": "OpenCode 1.19.3"
+  },
+  "current": {
+    "main": {
+      "status": "merged",
+      "detail": "Código, fluxos e PRs #14 e #17 integrados à main",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/pull/17"
+    },
+    "fullApplication": {
+      "status": "passed",
+      "detail": "API, PostgreSQL e Docker validados por HTTP",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39540969370"
+    },
+    "nativeOpenCode": {
+      "status": "passed",
+      "detail": "/oc validado por comentário com publicação isolada",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39540969370"
+    },
+    "nativeClaude": {
+      "status": "passed",
+      "detail": "@claude validado por comentário, com 67 testes Java",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39542150017"
+    },
+    "liveReview": {
+      "status": "passed",
+      "detail": "Revisão publicada. Achados exigem verificação",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/pull/17"
+    },
+    "newFullPr": {
+      "status": "passed",
+      "detail": "/oc: PR #14. @claude: PR #17, com 67 testes Java",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/pull/17"
+    },
+    "governance": {
+      "status": "passed",
+      "detail": "Política aplicada, tokens e custo estimado coletados",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39540969370"
+    },
+    "kubernetes": {
+      "status": "passed",
+      "detail": "API e banco em kind. vLLM e ARC sem execução",
+      "url": "https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39544001615"
+    },
+    "cursor": {
+      "status": "not_authenticated",
+      "detail": "Alternativa documentada, sem teste autenticado",
+      "url": "https://cursor.com/docs/cli/github-actions"
+    }
+  },
+  "newRuns": {
+    "opencode": {
+      "issue": 12,
+      "pullRequest": 14,
+      "runId": "39540969370",
+      "agentSeconds": 330,
+      "javaTests": 49,
+      "estimatedCostUsd": 0.52553265,
+      "costBasis": "opencode-model-pricing-estimate",
+      "providerBilledCostUsd": null,
+      "tokenDimensions": {
+        "input": 25,
+        "output": 10332,
+        "reasoning": 0,
+        "cacheRead": 644513,
+        "cacheWrite": 47233
+      }
+    },
+    "reviewInitializationFailure": {
+      "runId": "39541588431",
+      "status": "failed",
+      "estimatedCostUsd": null
+    },
+    "claude": {
+      "issue": 13,
+      "pullRequest": 17,
+      "runId": "39542150017",
+      "agentSeconds": 377,
+      "javaTests": 67,
+      "estimatedCostUsd": 0.7433460000000001,
+      "costBasis": "claude-code-client-estimate",
+      "providerBilledCostUsd": null,
+      "tokenDimensions": {
+        "input": 25,
+        "output": 22757,
+        "reasoning": null,
+        "cacheRead": 644470,
+        "cacheWrite": 55620
+      }
+    },
+    "review": {
+      "runId": "39542895407",
+      "estimatedCostUsd": 0.0541365,
+      "sourceHead": "e534d994d357f9fae3753bcdd5e8fbe21fe2a123",
+      "comment": "https://github.com/lucasnscr/issue-to-pr-ai/pull/17#issuecomment-6307886092",
+      "assessment": "O revisor levantou hipóteses sobre setup/helpers ausentes do diff. A inspeção da base confirmou @BeforeEach e os métodos existentes. Cobertura de integração e CI refutam falhas de compilação/isolamento. O índice ASC não garante eliminar sort na direção mista; nenhum benchmark foi realizado."
+    },
+    "kubernetes": {
+      "runId": "39544001615",
+      "criteria": 9,
+      "sourceCommit": "e30661f8d08429c2e1ccf0e0c6cb112f65e5504c",
+      "status": "passed",
+      "scope": "API, PostgreSQL, PVC e troca de ambos os Pods em kind"
+    },
+    "reviewWithBaseContext": {
+      "runId": "39544449626",
+      "workflowStatus": "cancelled-after-publication",
+      "inferenceOutcome": "success",
+      "publicationOutcome": "success",
+      "usageOutcome": "completed",
+      "estimatedCostUsd": 0.05614275,
+      "comment": "https://github.com/lucasnscr/issue-to-pr-ai/pull/17#issuecomment-6308093266",
+      "note": "O evento concorrente cancelou o workflow após publicação e coleta. A configuração final preserva execuções em curso."
+    },
+    "idempotence": {
+      "runId": "39544635495",
+      "workflowStatus": "success",
+      "agentOutcome": "skipped",
+      "additionalInferenceStarted": false
+    },
+    "localFullAcceptance": {
+      "sourceCommit": "3599e2a4baa681cd7afe58644b2bc5ae8b3dc063",
+      "kubernetesCriteria": 9,
+      "httpSuites": [
+        "smoke",
+        "category",
+        "price-range",
+        "ordering"
+      ],
+      "status": "passed"
+    }
+  },
+  "scope": {
+    "fullApplication": "API, PostgreSQL, Docker e Kubernetes local, sem interface web própria",
+    "gpuRequested": false,
+    "vllmExecuted": false,
+    "arcExecuted": false,
+    "cursorAuthenticated": false
+  }
+}

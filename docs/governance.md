@@ -98,10 +98,15 @@ consultiva.
 
 A primeira revisão real demonstrou também o limite de analisar apenas um diff:
 o modelo supôs ausência de limpeza de banco e helpers que já existiam na base.
-Os 67 testes Java e a leitura humana refutaram essas hipóteses. O revisor passou
+Os 67 testes Java e a inspeção do código-base refutaram essas hipóteses. O revisor passou
 a receber trechos limitados da base confiável e instruções para omitir hipóteses
 sem evidência. Isso reduz contexto faltante, mas não transforma o comentário em
 aprovação nem prova ausência de defeitos.
+
+As revisões são serializadas por PR sem cancelar uma inferência já iniciada.
+Isso preserva a coleta do consumo e dos artefatos. Se o SHA mudar, a publicação
+descarta o resultado obsoleto; se já houver comentário para o mesmo SHA, a etapa
+de inferência é ignorada. A reexecução real `39544635495` confirmou esse comportamento.
 
 Antes de conectar ambientes internos, os responsáveis devem definir:
 
