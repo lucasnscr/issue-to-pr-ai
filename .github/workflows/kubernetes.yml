@@ -1,0 +1,54 @@
+name: Kubernetes acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - infra/kubernetes/application/**
+      - scripts/k8s-acceptance.mjs
+      - .github/workflows/kubernetes.yml
+permissions:
+  contents: read
+concurrency:
+  group: kubernetes-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  local-cluster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install pinned kind and verify its checksum
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/kind-linux-amd64" https://github.com/kubernetes-sigs/kind/releases/download/v0.30.0/kind-linux-amd64
+          curl -fsSLo "$RUNNER_TEMP/kind.sha256sum" https://github.com/kubernetes-sigs/kind/releases/download/v0.30.0/kind-linux-amd64.sha256sum
+          cd "$RUNNER_TEMP"
+          sha256sum -c kind.sha256sum
+          chmod +x kind-linux-amd64
+          echo "KIND_BIN=$RUNNER_TEMP/kind-linux-amd64" >> "$GITHUB_ENV"
+          echo "KUBECONFIG=$RUNNER_TEMP/issue-to-pr-ai-kubeconfig" >> "$GITHUB_ENV"
+      - name: Deploy API and PostgreSQL, then test HTTP behavior and persistence
+        run: node scripts/k8s-acceptance.mjs --deploy
+      - name: Kubernetes diagnostics
+        if: failure()
+        run: |
+          kubectl --context kind-issue-to-pr-ai-demo -n catalog get pods,pvc,services || true
+          kubectl --context kind-issue-to-pr-ai-demo -n catalog get events --sort-by=.lastTimestamp || true
+      - name: Save acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kubernetes-acceptance
+          path: artifacts/kubernetes-acceptance.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Delete the ephemeral local cluster
+        if: always()
+        run: |
+          if [ -n "${KIND_BIN:-}" ] && [ -x "$KIND_BIN" ]; then
+            "$KIND_BIN" delete cluster --name issue-to-pr-ai-demo
+          fi

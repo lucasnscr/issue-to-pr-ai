@@ -21,11 +21,8 @@ module.exports = async ({ github, context, core }) => {
     return;
   }
   if (issue.pull_request) {
-    const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: issue.number });
-    if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
-      core.notice('Agent execution on fork branches is disabled.');
-      return;
-    }
+    core.notice('Use an issue for implementation. PR review is handled by AI review.');
+    return;
   }
   core.setOutput('agent', match[1].toLowerCase() === '@claude' ? 'claude' : 'opencode');
 };

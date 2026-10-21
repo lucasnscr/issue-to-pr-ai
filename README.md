@@ -1,7 +1,7 @@
 # Issue to PR AI
 
 Template de desenvolvimento orientado por issues: um colaborador descreve a tarefa, um agente
-implementa em uma branch, a CI valida o código e uma pessoa decide o merge.
+implementa, testes com PostgreSQL e Docker validam o código antes da PR, e uma pessoa decide o merge.
 
 Inclui uma API de catálogo funcional, integração com OpenCode e Claude Code,
 revisão por IA e um perfil opcional de inferência com vLLM no Kubernetes.
@@ -12,8 +12,8 @@ Repositório: [lucasnscr/issue-to-pr-ai](https://github.com/lucasnscr/issue-to-p
 flowchart LR
   I[Issue com critérios de aceite] --> G[Label ai:ready e comando autorizado]
   G --> A[GitHub Actions e agente]
-  A --> P[PR em draft]
-  P --> C[Testes e build]
+  A --> C[Testes PostgreSQL e Docker]
+  C --> P[PR em draft]
   P --> H[Pessoa marca como pronta]
   H --> R[Revisão por IA do diff]
   C --> M[Revisão humana e merge]
@@ -78,16 +78,10 @@ Consulte o [registro de verificação local](docs/verification.md) para os resul
 ## Ativar no GitHub
 
 Os workflows de IA começam **desativados**. A aplicação e a CI funcionam sem credenciais de IA.
-As mudanças são entregues em branch dedicada e PR em draft. A primeira implementação usa
-`feat/initial-template`, com destino em `main`; o commit inicial de `main` serve apenas como
-base vazia para essa PR. Siga o [guia de configuração](docs/setup-cloud.md).
-
-O [teste real antes do merge](docs/setup-cloud.md#teste-real-antes-do-primeiro-merge) usa um push
-da branch `ai/live-test` para executar uma tarefa com OpenCode e um modelo real. O workflow
-valida o resultado com testes PostgreSQL antes de publicar uma PR em draft contra
-`feat/initial-template`. Configure primeiro `ANTHROPIC_API_KEY`; o modelo roda sem token
-GitHub, e um job separado publica o resultado. A existência do workflow não comprova uma
-execução: consulte o run e a PR gerados para verificar o resultado.
+As mudanças são entregues em branch dedicada e PR em draft contra `main`.
+As PRs de bootstrap e filtro de categoria já foram integradas. Siga o
+[guia de configuração](docs/setup-cloud.md). O diagnóstico antigo `AI live test`
+continua desativado como registro reproduzível da primeira experiência.
 
 Após configurar `ANTHROPIC_API_KEY` e as variáveis de ativação, adicione a label `ai:ready`
 a uma issue e comente um dos comandos:
@@ -97,13 +91,20 @@ a uma issue e comente um dos comandos:
 @claude implemente esta issue seguindo os critérios de aceite
 ```
 
-Somente colaboradores com escrita podem acionar implementações. PRs de forks não são executadas
-com credenciais. Claude Code é uma opção adicional ativada por `CLAUDE_ENABLED`.
+Somente colaboradores com escrita podem acionar implementações em issues abertas e autorizadas.
+Comentários em PRs não iniciam implementações. Claude Code é uma opção adicional ativada por `CLAUDE_ENABLED`.
 OpenCode também pode usar `vllm/qwen-coder`, sem chamada à Anthropic nesse perfil.
 
-O caminho principal usa `opencode github run` com CLI fixada, e o alternativo usa a Action
-oficial do Claude Code. A revisão usa OpenCode sem ferramentas habilitadas: recebe o patch,
+Os comandos usam as CLIs fixadas em modo não interativo, com publicação isolada do agente.
+A inferência não recebe um token GitHub no ambiente. O workflow valida o escopo, roda Maven
+com PostgreSQL real, constrói a imagem e testa a API antes de publicar a PR. A CI é disparada
+explicitamente porque eventos criados pelo `GITHUB_TOKEN` normalmente não iniciam outros workflows.
+A revisão usa OpenCode sem ferramentas habilitadas: recebe o patch,
 gera o texto, e uma etapa separada publica o comentário. Ela não roda o código da PR.
+
+Consulte [política e consumo](docs/governance.md), [Cursor como alternativa](docs/cursor.md),
+[casos propostos para a B3](docs/b3-use-cases.md) e a [apresentação](docs/presentation/).
+O custo registrado é uma estimativa do runtime, separado do faturamento do provedor.
 
 ## API
 

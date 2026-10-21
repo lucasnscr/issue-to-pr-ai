@@ -39,7 +39,7 @@ test('ready label and open state are checked from current API state', async () =
   assert.equal(await evaluate({ labels: [] }), '');
   assert.equal(await evaluate({ state: 'closed' }), '');
 });
-test('same-repository PRs are allowed and fork PRs are denied', async () => {
-  assert.equal(await evaluate({ pr: true }), 'opencode');
+test('implementation only starts from issues, never PR comments', async () => {
+  assert.equal(await evaluate({ pr: true }), '');
   assert.equal(await evaluate({ pr: true, fork: true }), '');
 });

@@ -1,46 +1,45 @@
-# Demonstração reproduzível
+# Demonstração de 15 minutos
 
-## Estado inicial
+Use apenas o catálogo público com dados fictícios. As sugestões para B3 são propostas para discussão, sem aprovação ou implantação interna.
 
-O CRUD, a validação de preço e SKU e a paginação já estão implementados e testados.
-As três issues abaixo são exercícios incrementais, ainda não implementados na aplicação base.
-Elas permitem observar o processo de desenvolvimento por IA com critérios verificáveis.
+## Preparação
 
-Prévia local, sem chamadas ao GitHub:
-
-```sh
-node scripts/seed-demo-issues.mjs
-```
-
-Depois de publicar o repositório e autenticar o GitHub CLI, crie os exercícios:
-
-```sh
-node scripts/seed-demo-issues.mjs --create --repo OWNER/REPOSITORY
-```
-
-O script cria a label e as issues ausentes, sem adicionar a label às tarefas nem iniciar agentes.
-Ele evita duplicar títulos entre as primeiras mil issues retornadas pelo GitHub.
+- Confira CI da `main`, credencial válida e limites em `config/ai-policy.json`.
+- Separe os links da issue, execução, artefatos, draft PR e comentário de revisão.
+- Inicie `docker compose up --build -d` e abra `/swagger-ui.html`.
+- Tenha o PDF da apresentação e uma gravação/evidência de execução pronta.
+- Uma geração real pode levar vários minutos. Dispare no início e use a execução concluída como reserva.
 
 ## Roteiro
 
-1. Rode `./mvnw verify` e confira a CI inicial.
-2. Abra a primeira issue, revise o escopo e adicione `ai:ready`.
-3. Comente `/oc implemente esta issue e entregue uma PR em draft com testes`.
-4. Inspecione a branch e a PR, os testes novos, o resumo da Action e os artefatos JSON.
-5. Se a PR não estiver em draft, marque-a como draft antes de revisar.
-6. Autorize a execução da CI caso o GitHub peça aprovação para workflows criados pelo bot.
-7. Marque a PR como pronta para iniciar a revisão por IA, quando habilitada.
-8. Faça a revisão humana e o merge após todos os critérios serem atendidos.
-9. Use `@claude` em outro exercício, ou configure `vllm/qwen-coder`, para experimentar outra execução.
+| Tempo | Conteúdo |
+|---|---|
+| 0–2 min | Uma issue com critérios de aceite e escopo pequeno |
+| 2–5 min | Gate de permissão, inferência sem token de publicação e validação independente |
+| 5–8 min | Primeira tentativa histórica bloqueada pelos testes e segunda tentativa guiada aprovada |
+| 8–11 min | API completa com PostgreSQL/Docker, PR e revisão consultiva vinculada ao SHA |
+| 11–13 min | Casos propostos B3 e Cursor como opção de agente |
+| 13–15 min | Limites, custo estimado, piloto e perguntas |
 
-Executar tarefas diferentes ajuda a conhecer as integrações, mas não constitui uma comparação
-controlada entre modelos. Para comparar a mesma tarefa, use cópias do mesmo commit inicial,
-os mesmos critérios e os mesmos testes; registre agente/modelo, duração, resultados e intervenção humana.
+O escopo completo é API, banco e infraestrutura, sem interface web própria. O Swagger é o explorador da API.
+O teste Kubernetes local inclui persistência após recriar o Pod. vLLM/ARC continuam dependentes de GPU e credenciais apropriadas.
 
-## Evidências esperadas
+## Tarefa nova
 
-- Issue com critérios de aceite e link para a PR.
-- PR com mudanças delimitadas e testes que comprovem o comportamento solicitado.
-- Checks `Repository checks` e `Build and tests` concluídos.
-- Comentário de revisão associado ao SHA atual quando revisão por IA estiver ativada.
-- JSON de execução com resultado do agente e dos testes, sem estimativas inventadas de custo.
+Use [faixa de preço](demo-issues/02-price-range.md) ou [ordenação](demo-issues/03-price-ordering.md).
+Não repita a issue de categoria em uma base que já possui essa funcionalidade.
+Na issue autorizada comente `/oc implemente esta issue` ou `@claude implemente esta issue`.
+A PR só aparece após os testes. A IA não decide o merge.
+
+## Comandos da aplicação
+
+```sh
+node scripts/smoke.mjs
+node scripts/category-acceptance.mjs
+# Depois de integrar a funcionalidade de faixa de preço:
+node scripts/price-acceptance.mjs
+```
+
+Mostre o artefato `ai-usage.json`: tokens por dimensão, custo estimado, limites e decisão de política.
+Não apresente estimativa como fatura nem generalize um resultado para ganho de produtividade.
+Escolha tarefas comparáveis para medir tempo total, intervenção humana, falhas e consumo em um piloto.
