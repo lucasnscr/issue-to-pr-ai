@@ -2,12 +2,14 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const examples = [
+const historical = [
   ['[demo] Filtrar produtos por categoria', '01-category-filter.md'],
   ['[demo] Filtrar produtos por faixa de preço', '02-price-range.md'],
   ['[demo] Ordenar produtos por preço', '03-price-ordering.md'],
 ];
 const args = process.argv.slice(2);
+const next = ['[demo] Listar categorias presentes no catálogo', '04-list-categories.md'];
+const examples = args.includes('--historical') ? [...historical, next] : [next];
 if (!args.includes('--create')) {
   console.log('Prévia: nenhuma issue será criada.\n');
   for (const [title, file] of examples) console.log(`${title}\n  docs/demo-issues/${file}`);

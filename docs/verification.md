@@ -1,4 +1,28 @@
-# Verificação local
+# Verificação atual: 21/10/2026
+
+A API, os workflows e os controles estão integrados à `main`. O escopo completo deste laboratório é API, PostgreSQL, Docker e Kubernetes local, sem interface web própria e sem GPU.
+
+| Evidência | Resultado |
+|---|---|
+| [/oc por comentário](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39540969370) | Faixa de preço, 49 testes Java e aceitação Docker/HTTP antes da [PR #14](https://github.com/lucasnscr/issue-to-pr-ai/pull/14) |
+| [@claude por comentário](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39542150017) | Ordenação, 67 testes Java e aceitação Docker/HTTP antes da [PR #17](https://github.com/lucasnscr/issue-to-pr-ai/pull/17) |
+| Scripts de autorização, política, revisão e publicação | 62 testes Node aprovados |
+| [Kubernetes na CI](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39544001615) | 9 critérios com PostgreSQL/PVC, HTTP e persistência após substituir os Pods da API e do banco |
+| Kubernetes local na aplicação com ordenação | 9 critérios e suites HTTP independentes de smoke, categoria, preço e ordenação aprovados no commit `3599e2a4baa681cd7afe58644b2bc5ae8b3dc063` |
+| [Revisão real](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39542895407) | Inferência com ferramentas negadas e comentário associado ao SHA, sem aprovação automática |
+| [Idempotência real](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39544635495) | Workflow aprovado, agente ignorado porque o mesmo SHA já tinha comentário. Nenhuma nova inferência iniciada |
+
+As gerações registraram estimativas de USD 0.52553265 (OpenCode) e USD 0.743346 (Claude Code), com tokens e cache discriminados. São estimativas do cliente, não faturas. Consumo ausente em falhas permanece indisponível.
+
+A revisão real mostrou hipóteses equivocadas sobre código fora do diff. O contexto foi ampliado com trechos da base confiável. A execução `39544449626` gerou/publicou a revisão e registrou uso, mas um evento concorrente cancelou o workflow após essas etapas. A configuração final serializa revisões sem cancelar uma inferência em andamento. As conclusões continuam consultivas, e os testes/inspeção da base são necessários para avaliar cada achado.
+
+A aplicação com ordenação passou pelos filtros combinados, erros 400 e desempate por ID. O índice `(price, id)` não é prova de ausência de sort em `price DESC, id ASC`; não há benchmark de desempenho.
+
+A proteção da main exige PR e checks, inclusive para administrador, e bloqueia force push/exclusão. O laboratório exige zero aprovações adicionais porque há um mantenedor. Estes merges foram autorizados explicitamente pelo usuário e executados pelo Codex, sem alegar revisão técnica humana independente.
+
+Cursor está documentado como alternativa e não foi autenticado. vLLM, ARC e enforcement de NetworkPolicy exigem ambiente próprio e permanecem sem teste real. Integrações internas de IAM/SIEM/faturamento dependem das equipes responsáveis. Veja [governança](governance.md), [Kubernetes](kubernetes-verification.md) e [Cursor](cursor.md).
+
+# Snapshot histórico de 20/10/2026
 
 Verificado em 20 de outubro de 2026, com Java 21 e Docker Desktop:
 
@@ -35,5 +59,4 @@ Um runner separado publicou a [PR #3](https://github.com/lucasnscr/issue-to-pr-a
 com base na branch da PR #2. A revisão do diff não identificou falhas nos critérios solicitados.
 O diagnóstico foi desativado após a execução; nenhuma PR foi aprovada ou mesclada automaticamente.
 
-ARC, Kubernetes e inferência em GPU ainda não foram executados. Os manifestos foram renderizados,
-sem aplicar mudanças em um cluster. Consulte [GitHub](setup-cloud.md) e [Kubernetes](setup-kubernetes.md).
+Nesse snapshot, Kubernetes/ARC/GPU tinham apenas renderização. A execução real de Kubernetes foi acrescentada em 21/10, conforme o registro atual acima. vLLM e ARC continuam sem execução real.

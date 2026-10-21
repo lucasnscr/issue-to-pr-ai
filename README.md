@@ -14,10 +14,11 @@ flowchart LR
   G --> A[GitHub Actions e agente]
   A --> C[Testes PostgreSQL e Docker]
   C --> P[PR em draft]
-  P --> H[Pessoa marca como pronta]
-  H --> R[Revisão por IA do diff]
-  C --> M[Revisão humana e merge]
-  R --> M
+  P --> R[Revisão consultiva por IA]
+  P --> K[CI obrigatória]
+  R --> H[Avaliação do mantenedor]
+  K --> H
+  H --> M[Merge autorizado]
   A -. inferência .-> L[Modelo gerenciado ou vLLM privado]
 ```
 

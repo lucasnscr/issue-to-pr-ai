@@ -13,7 +13,7 @@ Os workflows devem estar na branch padrão. Configure os Repository secrets na i
 | Variable | `OPENCODE_MODEL` | `anthropic/claude-sonnet-4-6` |
 | Variable | `CLAUDE_MODEL` | `anthropic/claude-sonnet-4-6` |
 | Variable | `REVIEW_MODEL` | `anthropic/claude-sonnet-4-6` |
-| Variable | `AI_ACCEPTANCE_PROFILE` | `category` por padrão, `price` exige também critérios de faixa de preço |
+| Variable | `AI_ACCEPTANCE_PROFILE` | `full` por padrão: categoria, faixa de preço e ordenação. `category`/`price` são perfis reduzidos |
 
 Em Settings / Actions / General, permita criar pull requests usando GitHub Actions.
 O publisher precisa de `contents:write`, `pull-requests:write`, `issues:write` e `actions:write`.

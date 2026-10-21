@@ -194,6 +194,12 @@ async function deployAndAccept() {
     assert(cleanup.every(item => item.status === 'fulfilled'), 'Synthetic product cleanup failed.');
   }
   passed('synthetic fixtures are removed after the acceptance test');
+  // HTTP health recovers before Kubernetes' periodic readiness probe updates
+  // the Pod condition after a database restart. Wait for that final observation.
+  const activeApi = JSON.parse(kubectl(['-n', namespace, 'get', 'pods', '-l', 'app=catalog-api', '-o', 'json']))
+    .items.find(pod => !pod.metadata.deletionTimestamp);
+  assert(activeApi, 'The API Pod must remain available after the test.');
+  kubectl(['-n', namespace, 'wait', '--for=condition=Ready', `pod/${activeApi.metadata.name}`, '--timeout=90s']);
   report.pods = JSON.parse(kubectl(['-n', namespace, 'get', 'pods', '-o', 'json'])).items.map(pod => ({
     name: pod.metadata.name, phase: pod.status.phase,
     ready: pod.status.conditions?.find(condition => condition.type === 'Ready')?.status === 'True',

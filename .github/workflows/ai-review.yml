@@ -12,7 +12,9 @@ permissions:
   contents: read
 concurrency:
   group: ai-review-${{ github.event.pull_request.number || inputs.pull_request }}
-  cancel-in-progress: true
+  # Preserve usage/artifacts for an inference already accepted by the provider.
+  # The publisher discards results whose PR SHA has changed.
+  cancel-in-progress: false
 jobs:
   review:
     if: >-
