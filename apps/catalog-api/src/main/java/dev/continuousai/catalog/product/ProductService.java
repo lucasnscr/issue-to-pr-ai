@@ -68,7 +68,7 @@ public class ProductService {
     }
 
     public List<String> listCategories() {
-        return repository.findDistinctCategories();
+        return repository.findDistinctCategories().stream().limit(20).toList();
     }
 
     public ProductResponse find(UUID id) {
