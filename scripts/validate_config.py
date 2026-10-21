@@ -48,8 +48,10 @@ def main():
     review_jobs = yaml.safe_load((ROOT / ".github/workflows/ai-review.yml").read_text())["jobs"]
     assert "github.event_name == 'workflow_dispatch'" in review_jobs["review"]["if"]
     assert "github.ref_name == github.event.repository.default_branch" in review_jobs["review"]["if"]
-    activation = next(step for step in review_jobs["review"]["steps"] if step.get("name") == "Persist review requirement before inference")
-    assert activation["if"].startswith("always()"), "Failed patch preparation must still persist review authorization"
+    review_steps = review_jobs["review"]["steps"]
+    activation = next(i for i, step in enumerate(review_steps) if step.get("name") == "Persist review requirement before inference")
+    install = next(i for i, step in enumerate(review_steps) if step.get("name") == "Install pinned OpenCode CLI")
+    assert activation < install, "Persist review authorization before CLI installation and patch preparation"
     for file in ("ai-review-gate.yml", "ai-review-gate-events.yml"):
         text = (ROOT / ".github/workflows" / file).read_text()
         workflow = yaml.safe_load(text)

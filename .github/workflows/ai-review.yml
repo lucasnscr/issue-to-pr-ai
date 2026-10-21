@@ -57,6 +57,21 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+      - name: Persist review requirement before inference
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const number = Number(context.payload.inputs.pull_request);
+            if (!Number.isSafeInteger(number) || number < 1) throw new Error('Invalid PR number.');
+            if (context.actor !== 'github-actions[bot]') {
+              const { data } = await github.rest.repos.getCollaboratorPermissionLevel({ ...context.repo, username: context.actor });
+              if (!['admin', 'maintain', 'write'].includes(data.permission)) throw new Error('Write access required.');
+            }
+            const { activate } = require('./.github/scripts/review-gate.cjs');
+            await activate({ github, repo: context.repo, number });
+            await github.rest.actions.createWorkflowDispatch({ ...context.repo,
+              workflow_id: 'ai-review-gate.yml', ref: context.payload.repository.default_branch,
+              inputs: { pull_request: String(number) } });
       - name: Install pinned OpenCode CLI
         run: npm install --global opencode-ai@1.19.3
       - id: started
@@ -83,16 +98,6 @@ jobs:
             }
             const prepare = require('./.github/scripts/review-context.cjs');
             await prepare({ github, context, core });
-      - name: Persist review requirement before inference
-        if: always() && steps.patch.outputs.sha != ''
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const { activate } = require('./.github/scripts/review-gate.cjs');
-            await activate({ github, repo: context.repo, number: Number(context.payload.inputs.pull_request) });
-            await github.rest.actions.createWorkflowDispatch({ ...context.repo,
-              workflow_id: 'ai-review-gate.yml', ref: context.payload.repository.default_branch,
-              inputs: { pull_request: String(context.payload.inputs.pull_request) } });
       - name: Generate review without a GitHub write token
         id: agent
         if: steps.patch.outputs.ready == 'true'

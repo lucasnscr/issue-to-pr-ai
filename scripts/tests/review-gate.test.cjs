@@ -215,3 +215,11 @@ test('completion routing verifies the source workflow and obtains PR identity wi
   s.runs.get(100).display_title = 'AI review PR #3'; await s.route(); assert.equal(s.dispatches.length, 1);
   s.runs.get(100).path = '.github/workflows/untrusted.yml'; await s.route(); assert.equal(s.dispatches.length, 1);
 });
+
+test('a failed trusted review setup persists the requirement even without labels or model output', async () => {
+  const s = fixture(); s.pr.labels = []; s.context.eventName = 'workflow_run'; s.context.payload.workflow_run = { id: 100 };
+  Object.assign(s.runs.get(100), { conclusion: 'failure', display_title: 'AI review PR #3' });
+  await s.route(); assert(s.comments.get(3).some(c => c.body.startsWith(triage.REQUIRED)));
+  assert.equal(s.checks.at(-1).conclusion, 'action_required');
+  assert.equal((await s.assess()).conclusion, 'action_required');
+});

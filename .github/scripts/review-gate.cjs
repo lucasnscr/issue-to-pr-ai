@@ -231,7 +231,12 @@ async function route({ github, context, core }) {
     const { data: source } = await github.rest.actions.getWorkflowRun({ ...repo, run_id: context.payload.workflow_run.id });
     if (source.head_repository?.full_name !== `${repo.owner}/${repo.repo}` || !['.github/workflows/ci.yml', '.github/workflows/ai-review.yml', '.github/workflows/ai-correct.yml'].includes(source.path)) return;
     const title = source.display_title?.match(/^AI (?:review|engineering) PR #([1-9]\d*)$/);
-    if (title) numbers = [Number(title[1])];
+    if (title) {
+      numbers = [Number(title[1])];
+      // A failed setup must not turn an explicitly requested review back into
+      // the manual path, even when no patch or model output was produced.
+      forceRequired = source.event === 'workflow_dispatch' && source.head_branch === context.payload.repository.default_branch;
+    }
     else if (source.path === '.github/workflows/ci.yml') {
       const prs = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', head: `${repo.owner}:${source.head_branch}`, per_page: 100 });
       numbers = prs.filter(pr => pr.head.sha === source.head_sha).map(pr => pr.number);
