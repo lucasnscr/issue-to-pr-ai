@@ -21,7 +21,12 @@ module.exports = async ({ github, context, core }) => {
   fs.writeFileSync(task,
     `Repository: ${owner}/${repo}\nIssue: #${issue.number}\nTitle: ${issue.title}\n\n` +
     'Implement the category-filter acceptance criteria below. Do not commit, push, create PRs, or change workflows/configuration.\n' +
-    'Only change application source/tests and Markdown documentation. Add PostgreSQL integration tests.\n\n' + issue.body);
+    'Only change application source/tests and Markdown documentation. Add PostgreSQL integration tests.\n' +
+    'Run ./mvnw -B -ntp verify (not only test), inspect failures, and fix them before finishing. Docker is available.\n' +
+    'Preserve Spring MVC built-in method validation: do not add class-level @Validated to ProductController, ' +
+    'which would route pagination failures through an AOP proxy and return 500 instead of 400.\n' +
+    'In TestRestTemplate tests, use URI template variables such as category={category} with a raw value. ' +
+    'Do not put pre-encoded %20 in a String URL: the template encodes it again and the server receives literal percent escapes.\n\n' + issue.body);
   core.setOutput('task', task);
   core.setOutput('issue', String(issueNumber));
   core.setOutput('base_ref', baseRef);

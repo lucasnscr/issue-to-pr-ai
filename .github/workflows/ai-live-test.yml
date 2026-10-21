@@ -63,6 +63,8 @@ jobs:
         env:
           EXPECTED_SHA: ${{ steps.task.outputs.base_sha }}
         run: node "$RUNNER_TEMP/validate-agent-changes.mjs"
+      - name: Preserve the candidate patch for diagnosing failed validations
+        run: git diff --cached --binary > artifacts/candidate.patch
       - name: Run unit and real PostgreSQL integration tests
         id: tests
         run: ./mvnw -B -ntp verify

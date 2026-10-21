@@ -108,7 +108,9 @@ Em seguida, faz build Docker e valida o filtro por HTTP com critérios independe
 normalização, paginação, totais, resultado vazio e entrada inválida. Somente um resultado
 aprovado segue para o job separado de publicação, que recebe a credencial de escrita, envia a
 branch `ai/issue-<número>-<run>` e cria a PR em draft com base em `AI_LIVE_TEST_BASE_REF`
-e vínculo à issue. O artefato `live-implementation` contém o patch, resumo e relatórios dos testes.
+e vínculo à issue. O artefato `live-implementation` contém o resumo e relatórios dos testes.
+`candidate.patch` preserva a proposta mesmo quando os testes falham; ele não autoriza publicação.
+Somente `implementation.patch`, produzido após todas as validações, é usado pelo job de publicação.
 
 Confira os logs, relatórios de teste, diff e PR resultante. A confirmação do teste real exige
 uma resposta do modelo e a execução completa desse fluxo; checks locais e a presença do YAML

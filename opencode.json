@@ -16,7 +16,7 @@
     "live-implementer": {
       "description": "Implement a bounded real-test issue; publication is handled outside the agent",
       "mode": "primary",
-      "steps": 25,
+      "steps": 35,
       "permission": {
         "bash": {
           "*": "deny",

@@ -5,7 +5,7 @@ Verificado em 20 de outubro de 2026, com Java 21 e Docker Desktop:
 | Verificação | Resultado |
 |---|---|
 | `./mvnw -B -ntp verify` | 2 testes unitários + 17 testes HTTP/PostgreSQL, todos aprovados |
-| `node --test scripts/tests/*.test.cjs` | 9 testes de autorização, integridade de patch e publicação de revisão, todos aprovados |
+| `node --test scripts/tests/*.test.cjs` | 32 testes de autorização, escopo, diagnóstico de erros e publicação de revisão, todos aprovados |
 | `docker build -t catalog-api:0.1.0 .` | Build multi-stage aprovado; processo final usa UID/GID 10001 |
 | Compose + `scripts/smoke.mjs` | Readiness, criação, consulta, exclusão e OpenAPI aprovados |
 | actionlint 1.7.12 | Workflows válidos |
@@ -16,7 +16,17 @@ Os testes HTTP usam PostgreSQL real em container, incluindo migration Flyway e r
 com SKU duplicado. O teste do revisor confirmou instalação da CLI, leitura do anexo, configuração
 do provider e extração do texto JSON; ele não mede qualidade de um modelo real.
 
-Não foram executadas chamadas a modelos pagos, Actions no GitHub, publicação de repositório,
-instalação de ARC nem inferência em GPU. Essas etapas dependem da configuração descrita em
-[GitHub](setup-cloud.md) e [Kubernetes](setup-kubernetes.md). Os manifestos foram renderizados,
-sem aplicar mudanças em um cluster.
+## Evidências no GitHub
+
+O código foi publicado na [PR #2](https://github.com/lucasnscr/issue-to-pr-ai/pull/2).
+A [CI 39535591349](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39535591349)
+aprovou 19 testes Java, os 27 testes Node existentes naquele commit, build Docker e smoke HTTP.
+
+A primeira [execução real de IA](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39536145613)
+usou OpenCode com `anthropic/claude-sonnet-4-6` e gerou a implementação da issue #1.
+Os testes executaram 2 casos unitários e 26 de integração, detectando seis falhas; a publicação
+foi bloqueada. Isso confirma execução real do modelo e da barreira de testes, sem aprovar a proposta gerada.
+O diagnóstico foi reforçado para preservar o patch candidato e exigir a suíte completa do agente.
+
+ARC, Kubernetes e inferência em GPU ainda não foram executados. Os manifestos foram renderizados,
+sem aplicar mudanças em um cluster. Consulte [GitHub](setup-cloud.md) e [Kubernetes](setup-kubernetes.md).
