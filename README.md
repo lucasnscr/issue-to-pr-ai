@@ -139,6 +139,8 @@ Com `AI_LOOP_ENABLED=true` e a label `ai:autofix`, os achados estruturados retor
 agente de correção. O ciclo faz até duas tentativas na mesma PR, com testes independentes,
 controle de consumo e parada para intervenção. O mantenedor decide aprovação e merge.
 Veja [ativação, limites e acompanhamento do engineering loop](docs/engineering-loop.md).
+O [relatório do teste real](docs/validacao-engineering-loop.md) registra duas correções
+automáticas, testes com PostgreSQL/Docker, consumo estimado e a parada para triagem dos pareceres.
 
 Consulte [política e consumo](docs/governance.md), [Cursor como alternativa](docs/cursor.md),
 [casos de uso em equipes de engenharia](docs/use-cases.md) e a [apresentação](docs/presentation/).
