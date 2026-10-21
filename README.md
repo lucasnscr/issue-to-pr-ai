@@ -139,6 +139,8 @@ Com `AI_LOOP_ENABLED=true` e a label `ai:autofix`, os achados estruturados retor
 agente de correção. O ciclo faz até duas tentativas na mesma PR, com testes independentes,
 controle de consumo e parada para intervenção. O mantenedor decide aprovação e merge.
 Veja [ativação, limites e acompanhamento do engineering loop](docs/engineering-loop.md).
+O [relatório do teste real](docs/validacao-engineering-loop.md) registra duas correções
+automáticas, testes com PostgreSQL/Docker, consumo estimado e a parada para triagem dos pareceres.
 
 Consulte [política e consumo](docs/governance.md), [Cursor como alternativa](docs/cursor.md),
 [casos de uso em equipes de engenharia](docs/use-cases.md) e a [apresentação](docs/presentation/).
@@ -150,6 +152,7 @@ O custo registrado é uma estimativa do runtime, separado do faturamento do prov
 |---|---|---|
 | POST | `/api/products` | Cria produto; `201` e `Location` |
 | GET | `/api/products?page=0&size=20` | Lista paginada, ordenada por criação e ID |
+| GET | `/api/products/categories` | Todas as categorias com produtos, sem duplicatas e em ordem alfabética; catálogo vazio retorna `[]` |
 | GET | `/api/products?category=books` | Lista filtrada por categoria (opcional, case-insensitive) |
 | GET | `/api/products?minPrice=10.00&maxPrice=99.99` | Lista filtrada por faixa de preço (limites inclusivos, combinável com `category`) |
 | GET | `/api/products?sort=price,asc` | Lista ordenada por preço crescente (desempate por ID) |

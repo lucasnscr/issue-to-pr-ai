@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import java.math.BigDecimal;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -67,6 +68,13 @@ public class ProductController {
 
         String categoryValue = category.orElse(null);
         return service.listWithFilters(categoryValue, minPrice, maxPrice, sort, page, size);
+    }
+
+    @GetMapping("/categories")
+    @Operation(summary = "List all categories present in the catalog, without duplicates, in ascending alphabetical order",
+            description = "Returns an unpaginated array of normalized category names. An empty catalog returns an empty array.")
+    public List<String> categories() {
+        return service.listCategories();
     }
 
     @GetMapping("/{id}")
