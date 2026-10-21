@@ -1,6 +1,7 @@
 package dev.continuousai.catalog.product;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -64,6 +65,10 @@ public class ProductService {
         }
         // "price,desc" — the controller @Pattern ensures only these two values reach here
         return Sort.by(Sort.Order.desc("price"), Sort.Order.asc("id"));
+    }
+
+    public List<String> listCategories() {
+        return repository.findDistinctCategories();
     }
 
     public ProductResponse find(UUID id) {

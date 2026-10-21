@@ -149,10 +149,16 @@ de produção/teste, bloqueio de escrita em workflow, ausência da ferramenta Ba
 completa. Esse endpoint não é um modelo real. Maven verifica a aplicação com PostgreSQL real;
 lint valida os workflows.
 
-Essas verificações **não demonstram um ciclo completo com o provedor no GitHub**. Esse teste
-precisa ocorrer depois que os novos workflows entrarem na branch padrão, usando uma PR de
-aplicação com defeito pequeno e reproduzível, `ai:autofix` e dados sintéticos. Confira o SHA de
-cada parecer, o commit corretivo, os relatórios dos testes e o comentário de acompanhamento.
+Em 21/10/2026, o [laboratório da PR #32](validacao-engineering-loop.md) executou o provedor
+real no GitHub: duas correções produziram commits na mesma PR, com PostgreSQL, Docker, CI
+e novas revisões. A candidata inicial tinha um defeito controlado de paginação. O teste
+independente confirmou a falha antes e o resultado correto depois, além de comprovar que
+os testes de regressão do agente rejeitam as versões defeituosas.
+
+O ciclo terminou em `needs-human` ao atingir duas tentativas com achados especulativos
+persistentes. A triagem e as estimativas de consumo estão registradas no relatório; essa
+execução não demonstrou encerramento automático em `ready-for-human`. O acompanhamento
+original permanece como evidência da parada por limite.
 
 As escolhas de dispatch explícito e separação de privilégios seguem a documentação do
 [GITHUB_TOKEN](https://docs.github.com/en/actions/concepts/security/github_token) e de
