@@ -48,7 +48,10 @@ class ProductApiIT {
         String path = created.getHeaders().getLocation().toString();
         assertThat(body.get("sku").asText()).isEqualTo("BOOK-01");
         assertThat(body.get("createdAt").asText()).isNotBlank();
-        assertThat(http.getForEntity(path, JsonNode.class).getBody().get("id")).isEqualTo(body.get("id"));
+        JsonNode loaded = http.getForEntity(path, JsonNode.class).getBody();
+        assertThat(loaded.get("id")).isEqualTo(body.get("id"));
+        assertThat(loaded.get("createdAt")).isEqualTo(body.get("createdAt"));
+        assertThat(loaded.get("updatedAt")).isEqualTo(body.get("updatedAt"));
 
         ResponseEntity<JsonNode> updated = http.exchange(path, HttpMethod.PUT,
                 new HttpEntity<>(request("book-02", "Updated book", "79.90")), JsonNode.class);
@@ -56,6 +59,8 @@ class ProductApiIT {
         assertThat(updated.getBody().get("name").asText()).isEqualTo("Updated book");
         assertThat(updated.getBody().get("price").decimalValue()).isEqualByComparingTo("79.90");
         assertThat(updated.getBody().get("createdAt")).isEqualTo(body.get("createdAt"));
+        assertThat(http.getForObject(path, JsonNode.class).get("updatedAt"))
+                .isEqualTo(updated.getBody().get("updatedAt"));
 
         assertThat(http.exchange(path, HttpMethod.DELETE, HttpEntity.EMPTY, Void.class).getStatusCode())
                 .isEqualTo(HttpStatus.NO_CONTENT);
