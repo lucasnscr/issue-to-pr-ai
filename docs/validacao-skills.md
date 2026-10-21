@@ -34,9 +34,21 @@ A CLI `graphifyy==0.9.93` foi instalada em virtualenv isolado, sem hooks nem con
 globais. Um primeiro corpus Java de prova produziu **4 nós e 3 relações**, com
 `GRAPHIFY_BACKEND=none`, `--code-only`, `--no-cluster` e `--no-viz` e zero tokens de modelo.
 
-A execução sobre o checkout versionado desta entrega será registrada após a conclusão do
-smoke local. A CI também executa o helper com a CLI real, sem credenciais de inferência.
+O helper processou o checkout `1fc37fa4b0ab42e27faf5cd9987d35aaa62aba89`:
+**75 arquivos, 681 nós e 1.536 relações**. O resumo contém **23 relações / 3.946 bytes**;
+as outras 1.513 relações estão explicitamente contabilizadas como omitidas. As relações
+incluídas têm confiança `EXTRACTED`. Hash das fontes:
+`9e0ec800c1c818d86a5a482dc8dc15e7ac4fcbe95a83890ff7e2f3c30358c704`.
+Hash do grafo completo: `80231b27e6b8d0e3e57699ad01836b522b5611b116d83b02fa6522c9138d5a7f`.
+O helper rejeita consumo de tokens semânticos; a execução concluiu em modo AST sem modelo.
+A CI também executa o helper com a CLI real, sem credenciais de inferência.
 Artefatos temporários, virtualenvs e relatórios não são versionados.
+
+Um smoke adicional selecionou `graphify`, `superpowers` e `postgres-flyway`, executou o
+adaptador real de preparação e entregou grafo e instruções ao runner de revisão. A chamada
+ao modelo foi simulada nesse smoke; a leitura, extração, validação de origem e composição
+do prompt usaram os scripts reais. Isso comprova o encadeamento local, não uma revisão real
+do provedor com essa seleção.
 
 Os testes do helper usam uma CLI simulada para confirmar isolamento das fontes versionadas,
 remoção de credenciais e configs de usuário, limite de bytes UTF-8, indicação de omissões,
