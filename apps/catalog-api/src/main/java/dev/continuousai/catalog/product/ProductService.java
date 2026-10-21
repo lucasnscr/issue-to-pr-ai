@@ -27,8 +27,8 @@ public class ProductService {
     }
 
     public ProductPage listWithFilters(String category, BigDecimal minPrice, BigDecimal maxPrice,
-                                       int page, int size) {
-        PageRequest pageable = PageRequest.of(page, size, Sort.by("createdAt", "id"));
+                                       String sort, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, buildSort(sort));
         boolean hasCategory = category != null;
         boolean hasPriceFilter = minPrice != null || maxPrice != null;
 
@@ -43,6 +43,27 @@ public class ProductService {
             return ProductPage.from(repository.findByPriceRange(minPrice, maxPrice, pageable));
         }
         return ProductPage.from(repository.findAll(pageable));
+    }
+
+    /**
+     * Translates the validated {@code sort} query parameter into a {@link Sort}.
+     * <ul>
+     *   <li>{@code null} – default: creation date ascending, then ID ascending.</li>
+     *   <li>{@code "price,asc"} – price ascending, ID ascending as tiebreaker.</li>
+     *   <li>{@code "price,desc"} – price descending, ID ascending as tiebreaker.</li>
+     * </ul>
+     * Any value other than the two above is rejected at the controller layer before this
+     * method is called, so the else branch is only a safety net.
+     */
+    private Sort buildSort(String sort) {
+        if (sort == null) {
+            return Sort.by("createdAt", "id");
+        }
+        if ("price,asc".equals(sort)) {
+            return Sort.by(Sort.Order.asc("price"), Sort.Order.asc("id"));
+        }
+        // "price,desc" — the controller @Pattern ensures only these two values reach here
+        return Sort.by(Sort.Order.desc("price"), Sort.Order.asc("id"));
     }
 
     public ProductResponse find(UUID id) {

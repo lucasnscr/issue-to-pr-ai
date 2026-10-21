@@ -8,6 +8,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.util.Optional;
@@ -30,7 +31,8 @@ public class ProductController {
     }
 
     @GetMapping
-    @Operation(summary = "List products with stable pagination, optionally filtered by category and/or price range")
+    @Operation(summary = "List products with stable pagination, optionally filtered by category and/or price range, " +
+            "and optionally sorted by price")
     public ProductPage list(
             @Parameter(description = "Filter by category (case-insensitive, trims surrounding spaces). " +
                     "Returns 400 if present but blank.")
@@ -45,6 +47,12 @@ public class ProductController {
             @DecimalMin(value = "0.00", message = "maxPrice must be >= 0.00")
             @Digits(integer = 10, fraction = 2, message = "maxPrice must have at most 2 decimal places")
             BigDecimal maxPrice,
+            @Parameter(description = "Sort order for the result. Accepted values: 'price,asc' (ascending by price) " +
+                    "and 'price,desc' (descending by price). Equal prices are broken by ID ascending. " +
+                    "Omit to keep the default order (creation date + ID). Any other value returns 400.")
+            @RequestParam(required = false)
+            @Pattern(regexp = "price,(asc|desc)", message = "sort must be 'price,asc' or 'price,desc'")
+            String sort,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
 
@@ -58,7 +66,7 @@ public class ProductController {
         }
 
         String categoryValue = category.orElse(null);
-        return service.listWithFilters(categoryValue, minPrice, maxPrice, page, size);
+        return service.listWithFilters(categoryValue, minPrice, maxPrice, sort, page, size);
     }
 
     @GetMapping("/{id}")
