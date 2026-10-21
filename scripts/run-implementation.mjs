@@ -48,7 +48,7 @@ export function claudeArguments({ taskFile, model, profile, rules }) {
     '--max-budget-usd', String(profile.maxEstimatedCostUsd), '--model', model.slice('anthropic/'.length),
     '--tools', 'Read,Edit,Write,Glob,Grep,Bash',
     '--allowedTools', 'Read,Edit,Write,Glob,Grep,Bash(./mvnw:*),Bash(git status:*),Bash(git diff:*)',
-    '--permission-mode', 'default', '--permission-prompts', 'none', '--no-session-persistence',
+    '--permission-prompts', 'none', '--no-session-persistence',
   ];
 }
 
