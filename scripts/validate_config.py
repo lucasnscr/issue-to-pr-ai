@@ -33,6 +33,11 @@ def main():
     assert loop["maxEstimatedBudgetUsd"] == loop["maxReviewEstimatedUsd"] + loop["maxAttempts"] * (
         loop["maxCorrectionEstimatedUsd"] + loop["maxReviewEstimatedUsd"]
     )
+    correction_jobs = yaml.safe_load((ROOT / ".github/workflows/ai-correct.yml").read_text())["jobs"]
+    for job in ("prepare", "report"):
+        assert correction_jobs[job]["permissions"]["pull-requests"] == "write", "PR conversation comments require PR write access"
+    assert correction_jobs["correct"]["permissions"]["contents"] == "read"
+    assert correction_jobs["correct"]["permissions"]["pull-requests"] == "read"
     for directory in ("application", "inference"):
         base = ROOT / "infra/kubernetes" / directory
         data = yaml.safe_load((base / "kustomization.yaml").read_text())
