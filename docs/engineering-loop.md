@@ -75,6 +75,8 @@ de um novo commit.
    arquivo, linha do trecho modificado e evidência de cada achado. O parser rejeita texto livre,
    locais inventados, prioridades desconhecidas e respostas fora dos limites. O comentário
    inclui os dados estruturados, SHA, número da PR, execução e estimativa de consumo.
+   O contexto de produtos inclui os normalizadores da entidade/DTO da base confiável. A prioridade
+   P0 fica reservada a falha catastrófica demonstrada; a parada para intervenção continua obrigatória.
 2. **Autorização:** o workflow `AI engineering loop` só aceita dispatch na branch padrão,
    originado de uma revisão desse mesmo repositório e dessa branch. Reconsulta a PR e a
    autorização, descarta SHAs obsoletos e aguarda a CI daquele SHA por até dez minutos.

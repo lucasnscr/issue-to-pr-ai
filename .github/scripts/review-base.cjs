@@ -5,8 +5,20 @@ const path = require('node:path');
 module.exports = (files, { root = process.cwd(), budget = 12000 } = {}) => {
   const base = fs.realpathSync(root);
   let text = '';
-  const ordered = [...files].sort((a, b) => Number(b.filename.includes('/src/test/')) - Number(a.filename.includes('/src/test/')));
+  const productPackage = 'dev/continuousai/catalog/product/';
+  const productChange = files.some(file => ['main', 'test'].some(source =>
+    file.filename.startsWith(`apps/catalog-api/src/${source}/java/${productPackage}`)));
+  const dependencies = productChange ? ['Product.java', 'ProductRequest.java'].map(name => ({
+    filename: `apps/catalog-api/src/main/java/${productPackage}${name}`,
+  })) : [];
+  // A service diff may rely on normalization performed by an unchanged entity.
+  // Reserve context for these fixed trusted callees before larger test excerpts.
+  const ordered = [...dependencies, ...[...files].sort((a, b) =>
+    Number(b.filename.includes('/src/test/')) - Number(a.filename.includes('/src/test/')))];
+  const seen = new Set();
   for (const file of ordered) {
+    if (seen.has(file.filename)) continue;
+    seen.add(file.filename);
     if (!/^apps\/catalog-api\/src\/(main|test)\/java\/[A-Za-z0-9_./$-]+\.java$/.test(file.filename)) continue;
     const candidate = path.resolve(base, file.filename);
     let stat;
