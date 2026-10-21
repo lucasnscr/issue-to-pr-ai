@@ -120,6 +120,12 @@ Isso preserva a coleta do consumo e dos artefatos. Se o SHA mudar, a publicaçã
 descarta o resultado obsoleto; se já houver comentário para o mesmo SHA, a etapa
 de inferência é ignorada. A reexecução real `39544635495` confirmou esse comportamento.
 
+O [laboratório posterior da PR #32](validacao-engineering-loop.md) publicou duas correções
+e parou em `needs-human`, com estimativa total de USD 0.53927370. A triagem assistida dos
+achados finais antecedeu a integração autorizada. A conclusão técnica do workflow não é
+uma aprovação da entrega. O [modelo de trabalho](modelo-de-trabalho.md) define esse acordo;
+triagem estruturada, evidência durável e quotas por equipe são propostas do [roadmap](roadmap.md).
+
 Antes de conectar ambientes internos, os responsáveis devem definir:
 
 - Provedores e modelos permitidos, classificação dos dados, retenção e destino de
