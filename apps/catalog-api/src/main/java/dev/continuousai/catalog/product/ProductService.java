@@ -19,6 +19,12 @@ public class ProductService {
         return ProductPage.from(repository.findAll(PageRequest.of(page, size, Sort.by("createdAt", "id"))));
     }
 
+    public ProductPage listByCategory(String category, int page, int size) {
+        String normalized = category.trim();
+        return ProductPage.from(
+                repository.findByCategory(normalized, PageRequest.of(page, size, Sort.by("createdAt", "id"))));
+    }
+
     public ProductResponse find(UUID id) {
         return ProductResponse.from(findEntity(id));
     }

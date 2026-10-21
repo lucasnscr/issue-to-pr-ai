@@ -159,12 +159,105 @@ class ProductApiIT {
                 .isEqualTo("UP");
     }
 
+    // ── Category filter tests ────────────────────────────────────────────────
+
+    @Test
+    void filtersByCategoryReturnsOnlyMatchingProducts() {
+        createWithCategory("BOOK-01", "Book One", "10.00", "books");
+        createWithCategory("TECH-01", "Tech One", "20.00", "tech");
+        createWithCategory("BOOK-02", "Book Two", "30.00", "books");
+
+        JsonNode body = http.getForObject("/api/products?category={category}", JsonNode.class, "books");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+        assertThat(body.get("content").size()).isEqualTo(2);
+        body.get("content").forEach(p ->
+                assertThat(p.get("category").asText()).isEqualTo("books"));
+    }
+
+    @Test
+    void filterByCategoryIsCaseInsensitive() {
+        createWithCategory("BOOK-01", "Book One", "10.00", "books");
+        createWithCategory("TECH-01", "Tech One", "20.00", "tech");
+
+        // Searching with "BOOKS" should match category stored as "books"
+        JsonNode body = http.getForObject("/api/products?category={category}", JsonNode.class, "BOOKS");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(1);
+        assertThat(body.at("/content/0/category").asText()).isEqualTo("books");
+    }
+
+    @Test
+    void filterByCategoryTrimsExternalSpaces() {
+        createWithCategory("BOOK-01", "Book One", "10.00", "books");
+        createWithCategory("TECH-01", "Tech One", "20.00", "tech");
+
+        // Category with surrounding spaces should still match
+        JsonNode body = http.getForObject("/api/products?category={category}", JsonNode.class, "  books  ");
+        assertThat(body.get("totalElements").asInt()).isEqualTo(1);
+        assertThat(body.at("/content/0/category").asText()).isEqualTo("books");
+    }
+
+    @Test
+    void filterByUnknownCategoryReturnsEmptyPage() {
+        createWithCategory("BOOK-01", "Book One", "10.00", "books");
+
+        JsonNode body = http.getForObject("/api/products?category={category}", JsonNode.class, "nonexistent");
+        assertThat(body.get("totalElements").asInt()).isZero();
+        assertThat(body.get("content").isEmpty()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " ", "   "})
+    void rejectsBlankCategoryParameter(String category) {
+        ResponseEntity<JsonNode> response = http.getForEntity(
+                "/api/products?category=" + category, JsonNode.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void filterByCategoryRespectsPagination() {
+        createWithCategory("BOOK-01", "Book One",   "10.00", "books");
+        createWithCategory("BOOK-02", "Book Two",   "20.00", "books");
+        createWithCategory("BOOK-03", "Book Three", "30.00", "books");
+        createWithCategory("TECH-01", "Tech One",   "40.00", "tech");
+
+        JsonNode page0 = http.getForObject(
+                "/api/products?category={category}&page=0&size=2", JsonNode.class, "books");
+        JsonNode page1 = http.getForObject(
+                "/api/products?category={category}&page=1&size=2", JsonNode.class, "books");
+
+        assertThat(page0.get("totalElements").asInt()).isEqualTo(3);
+        assertThat(page0.get("totalPages").asInt()).isEqualTo(2);
+        assertThat(page0.get("content").size()).isEqualTo(2);
+        assertThat(page1.get("content").size()).isEqualTo(1);
+        // No duplicates across pages
+        assertThat(page0.at("/content/0/id")).isNotEqualTo(page1.at("/content/0/id"));
+        assertThat(page0.at("/content/1/id")).isNotEqualTo(page1.at("/content/0/id"));
+    }
+
+    @Test
+    void listWithoutCategoryPreservesAllProducts() {
+        createWithCategory("BOOK-01", "Book", "10.00", "books");
+        createWithCategory("TECH-01", "Tech", "20.00", "tech");
+
+        JsonNode body = http.getForObject("/api/products", JsonNode.class);
+        assertThat(body.get("totalElements").asInt()).isEqualTo(2);
+    }
+
     private ResponseEntity<JsonNode> create(String sku, String name, String price) {
         return http.postForEntity("/api/products", request(sku, name, price), JsonNode.class);
     }
 
+    private ResponseEntity<JsonNode> createWithCategory(String sku, String name, String price, String category) {
+        return http.postForEntity("/api/products", requestWithCategory(sku, name, price, category), JsonNode.class);
+    }
+
     private Map<String, Object> request(String sku, String name, String price) {
         return Map.of("sku", sku, "name", name, "description", "A book", "category", "Books",
+                "price", new BigDecimal(price));
+    }
+
+    private Map<String, Object> requestWithCategory(String sku, String name, String price, String category) {
+        return Map.of("sku", sku, "name", name, "description", "A product", "category", category,
                 "price", new BigDecimal(price));
     }
 }

@@ -40,6 +40,9 @@ curl --fail -X POST http://localhost:8080/api/products \
   -d '{"sku":"BOOK-001","name":"Kubernetes na prática","category":"books","price":99.90}'
 
 curl --fail 'http://localhost:8080/api/products?page=0&size=10'
+
+# Filtrar por categoria (case-insensitive, remove espaços externos)
+curl --fail 'http://localhost:8080/api/products?category=books'
 ```
 
 O Compose usa credenciais locais de demonstração e publica portas apenas em `127.0.0.1`.
@@ -108,6 +111,7 @@ gera o texto, e uma etapa separada publica o comentário. Ela não roda o códig
 |---|---|---|
 | POST | `/api/products` | Cria produto; `201` e `Location` |
 | GET | `/api/products?page=0&size=20` | Lista paginada, ordenada por criação e ID |
+| GET | `/api/products?category=books` | Lista filtrada por categoria (opcional, case-insensitive) |
 | GET | `/api/products/{id}` | Consulta por UUID |
 | PUT | `/api/products/{id}` | Substitui campos editáveis |
 | DELETE | `/api/products/{id}` | Exclui; `204` |
@@ -115,6 +119,9 @@ gera o texto, e uma etapa separada publica o comentário. Ela não roda o códig
 SKU: 2–40 caracteres alfanuméricos, `_` ou `-`, começando por um alfanumérico; armazenado em maiúsculas.
 Nome e categoria são obrigatórios; categoria é normalizada para minúsculas. Descrição é opcional.
 Preço: de `0.01` a `9999999999.99`, com até duas casas decimais. Páginas começam em zero e têm tamanho de 1 a 100.
+Filtro `category`: opcional; a comparação ignora maiúsculas/minúsculas e remove espaços externos.
+Categoria inexistente retorna página vazia. Parâmetro presente mas em branco retorna `400`.
+Paginação e totais são calculados somente sobre os produtos filtrados.
 Erros usam `application/problem+json`: `400` para entrada inválida, `404` para produto ausente,
 `409` para SKU duplicado. A API é uma aplicação de demonstração sem autenticação de usuários.
 
