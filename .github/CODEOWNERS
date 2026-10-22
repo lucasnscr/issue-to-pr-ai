@@ -1,0 +1,4 @@
+# Ownership reference. A template consumer must replace this identity with its
+# actual maintainers/teams before requesting reviews. Required approval rules
+# remain configured separately in branch protection.
+* @lucasnscr

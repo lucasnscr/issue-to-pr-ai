@@ -2,6 +2,8 @@
 
 This template demonstrates continuous development from a GitHub issue to a draft PR.
 The application is a Java 21 / Spring Boot product catalog in `apps/catalog-api`.
+The method and component map start at `docs/README.md`; contribution and validation
+guidance lives in `CONTRIBUTING.md` and `docs/runbooks/validation.md`.
 
 ## Working agreement
 

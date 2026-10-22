@@ -1,5 +1,10 @@
 # GitHub: issue, implementação e revisão
 
+Comece pelo [runbook de adoção](runbooks/adoption.md): o bootstrap prepara metadados e
+labels; o doctor verifica configuração por leitura. Eles não provisionam secrets,
+habilitam modelos ou substituem proteção. O [runbook de operação](runbooks/github-operations.md)
+relaciona comandos, evidências e recuperação de falhas.
+
 ## Configuração
 
 Os workflows devem estar na branch padrão. Configure os Repository secrets na interface do GitHub, sem compartilhar valores no chat ou no código.

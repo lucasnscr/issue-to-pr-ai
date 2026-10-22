@@ -1,4 +1,10 @@
-# Verificação atual: 21/10/2026
+# Verificação e evidências
+
+A [validação da referência de método](validacao-reference-method.md) descreve a evolução
+de organização, diagnóstico/bootstrap e especificação real. Abaixo ficam os snapshots
+históricos, com seus próprios commits e execuções; seus números não são a suíte atual.
+
+## Snapshot de 21/10/2026
 
 A API, os workflows e os controles foram validados no laboratório com PostgreSQL, Docker e Kubernetes local, sem GPU.
 A [PR #24](https://github.com/lucasnscr/issue-to-pr-ai/pull/24) integrou a interface web própria, servida na mesma origem.
@@ -37,9 +43,9 @@ A aplicação com ordenação passou pelos filtros combinados, erros 400 e desem
 A proteção da main exige PR e checks, inclusive para administrador, e bloqueia force push/exclusão. O laboratório exige zero aprovações adicionais porque há um mantenedor. Estes merges foram autorizados explicitamente pelo usuário e executados pelo Codex, sem alegar revisão técnica humana independente.
 
 Cursor está documentado como alternativa e não foi autenticado. vLLM, ARC e enforcement de NetworkPolicy exigem ambiente próprio e permanecem sem teste real. Integrações internas de IAM/SIEM/faturamento dependem das equipes responsáveis. Veja [governança](governance.md), [Kubernetes](kubernetes-verification.md) e [Cursor](cursor.md).
-Para adotar o processo, consulte o [modelo de trabalho](modelo-de-trabalho.md). Template com
-bootstrap, check próprio de liberação, painel e quotas compartilhadas constam como propostas
-no [roadmap](roadmap.md).
+Para adotar o processo, consulte o [modelo de trabalho](modelo-de-trabalho.md) e o
+[runbook de adoção](runbooks/adoption.md). O [roadmap](roadmap.md) distingue bootstrap,
+check de liberação e demais componentes implementados das próximas propostas.
 
 # Snapshot histórico de 20/10/2026
 

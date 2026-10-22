@@ -38,8 +38,9 @@ já foram implementados. Use suas execuções concluídas como evidência. Para 
 ao vivo, escolha um comportamento ainda ausente, escreva os critérios e confira o escopo
 com o responsável, seguindo o [modelo de trabalho](modelo-de-trabalho.md).
 Não repita issues cujo aceite já esteja atendido na base. O script `seed-demo-issues.mjs`
-ainda seleciona o exercício 04 por padrão; sua prévia não comprova que uma tarefa é nova.
-Evite `--create` para esses exemplos históricos na base atual.
+mostra uma prévia histórica e exige `--acknowledge-historical` para criar exemplos.
+Isso só é apropriado para reproduzir o laboratório em outra base; sua prévia não comprova
+que uma tarefa é nova. Não crie esses exemplos como trabalho pendente na base atual.
 Na issue autorizada comente `/oc implemente esta issue` ou `@claude implemente esta issue`.
 A PR só aparece após os testes. A IA não decide o merge.
 

@@ -7,6 +7,9 @@ mantenedor. O [modelo de trabalho](modelo-de-trabalho.md) define como uma equipe
 o [roadmap](roadmap.md) distingue as próximas propostas do comportamento implementado.
 O [catálogo de skills](skills-catalog.md) fornece instruções versionadas por fase e uma
 rodada opcional de especificação antes da autorização para implementar.
+O [índice da referência](README.md) organiza componentes e jornadas. As
+[decisões registradas](decisions/README.md) documentam separação de controle/candidata,
+evidência por commit e adoção explícita.
 
 ## Componentes e responsabilidades
 
@@ -56,6 +59,8 @@ flowchart LR
 | Controle do ciclo | `ai-correct.yml`, `engineering-loop.cjs` | Verificar procedência da revisão, CI, autorização, escopo e reservas |
 | Correção | `run-correction.mjs`, `validate-correction.mjs` | Editar fonte/testes/docs em diretório isolado; validar o patch antes de publicar |
 | CI | `ci.yml` | Revalidar scripts/configuração, API/PostgreSQL e aplicação em Docker |
+| Diagnóstico/adoção | `repository-doctor.mjs`, `bootstrap-repository.mjs`, `repository.json` | Inspecionar configuração sem mutações; aplicar somente metadados/topics/labels com ação explícita |
+| Qualidade da documentação | `validate-docs.mjs`, índice, ADRs e runbooks | Validar links/âncoras locais e manter navegação e responsabilidade claras |
 | Catálogo de demonstração | Java 21, Spring Boot, PostgreSQL e Flyway | Fornecer uma aplicação real para tarefas verificáveis |
 
 Os workflows ficam em [`.github/workflows`](../.github/workflows/) e os controles em

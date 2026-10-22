@@ -22,6 +22,10 @@ jobs:
       - name: Verify a clean checkout
         run: git diff --exit-code
       - run: node --test scripts/tests/*.test.cjs
+      - name: Validate reference structure and documentation links
+        run: |
+          node scripts/repository-doctor.mjs --offline
+          node scripts/validate-docs.mjs
       - name: Validate skill provenance and catalog integrity
         run: node scripts/validate-skills.cjs
       - name: Exercise the pinned Graphify CLI without a provider
