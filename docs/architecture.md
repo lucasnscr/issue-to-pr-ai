@@ -5,12 +5,20 @@ desenvolvimento orientado por issues: geração de código, validação independ
 revisão estruturada e correção opcional na mesma branch. A aprovação e o merge pertencem ao
 mantenedor. O [modelo de trabalho](modelo-de-trabalho.md) define como uma equipe opera esse fluxo;
 o [roadmap](roadmap.md) distingue as próximas propostas do comportamento implementado.
+O [catálogo de skills](skills-catalog.md) fornece instruções versionadas por fase e uma
+rodada opcional de especificação antes da autorização para implementar.
 
 ## Componentes e responsabilidades
 
 ```mermaid
 flowchart LR
   H["Colaborador autorizado"] --> I["Issue com escopo e critérios"]
+  I --> S["/ai-spec: perguntas e critérios propostos"]
+  S --> H
+  I --> SK["IDs de skills no catálogo confiável"]
+  SK --> A
+  SK --> R
+  SK --> E
   I --> G["Gate de autorização na branch padrão"]
   G --> A["OpenCode ou Claude Code: implementação"]
   A --> V["Escopo, PostgreSQL, Docker e HTTP"]
@@ -36,6 +44,9 @@ flowchart LR
 
 | Componente | Implementação | Responsabilidade |
 |---|---|---|
+| Especificação | `ai-specification.yml`, `specification.cjs`, `run-specification.mjs` | Perguntas e proposta por comando autorizado; publicação revalida issue e comentário |
+| Skills | `skills.cjs`, `skills-catalog.json`, `skills/` | Selecionar por fase, verificar integridade e registrar versões/hashes |
+| Grafo opcional | `prepare-skill-graph`, `graphify-context.py`, `attach-skill-graph.mjs` | Executar Graphify AST sem backend LLM somente na base confiável e fornecer resumo limitado |
 | Autorização da tarefa | `ai-implement.yml`, `authorize.cjs`, `prepare-implementation.cjs` | Consultar ator, comando, issue, labels e SHA da base |
 | Implementação | `run-implementation.mjs` | Executar a CLI escolhida sob política, sem publicar código |
 | Validação e primeira publicação | `validate-agent-changes.mjs`, jobs de `ai-implement.yml` | Validar aplicação e testes; outro runner cria a draft PR |
@@ -51,6 +62,13 @@ Os workflows ficam em [`.github/workflows`](../.github/workflows/) e os controle
 [`.github/scripts`](../.github/scripts/) e [`scripts`](../scripts/).
 
 ## Entrada e primeira entrega
+
+Antes da implementação, `/ai-spec` em issue aberta pode produzir até cinco perguntas e dez
+critérios propostos. Exige escrita e `AI_SPEC_ENABLED=true`, além de `AI_ENABLED=true`.
+O agente `specifier` mantém todas as ferramentas negadas e usa política de consumo de
+especificação. Cada rodada depende de novo comando humano. Não altera a descrição ou labels
+nem inicia implementação. A seleção do formulário permite Superpowers, grill-me e Graphify,
+além das práticas Java/PostgreSQL/testes/revisão; o guia documenta fases e padrões.
 
 `issue_comment: created` reconhece `/oc`, `/opencode` ou `@claude` como primeira expressão
 do comentário. O gate exige uma issue aberta com `ai:ready`, ator humano e permissão atual
@@ -68,12 +86,22 @@ publica `ai/issue-NUMERO-RUN_ID` e abre uma draft PR vinculada por `Closes #NUME
 O publisher transfere `ai:ready` e, quando autorizada na issue, `ai:autofix` para a PR.
 CI e revisão são solicitadas explicitamente.
 
+O loader acrescenta somente recursos aprovados de cada fase, com hashes verificados. O
+publisher registra IDs no corpo da PR usando catálogo da base, não artefatos do modelo.
+Revisão/correção revalidam esses IDs no catálogo confiável de cada execução e preservam
+`skills-manifest.json`. Um ID não permite carregar caminhos ou texto da PR como instrução.
+Graphify, quando selecionado, roda antes da inferência sobre uma cópia somente de fontes
+versionadas da base limpa: até 200 arquivos, 120 segundos e 4.000 bytes de contexto.
+Ambiente sem credenciais, `GRAPHIFY_BACKEND=none` e `--code-only` impedem fallback semântico;
+o helper rejeita tokens de modelo, procedência divergente e falhas de extração.
+
 ## Revisão e procedência do parecer
 
 O revisor usa checkout confiável e dispatch na branch padrão, inclusive em revisões sem
 corretor. O código do head não é executado por essa etapa. O contexto contém o patch completo
 e trechos limitados da base, incluindo setup de testes e os normalizadores de produto/DTO.
-O patch pode ter até 96.000 bytes e o contexto total até 112.000 bytes. Conteúdo incompleto,
+O patch pode ter até 96.000 bytes e o contexto total, incluindo skills e grafo opcional,
+até 112.000 bytes. Conteúdo incompleto,
 binário ou acima do limite é rejeitado, sem truncamento silencioso.
 
 O agente `reviewer` tem todas as ferramentas negadas. Sua resposta é validada como
@@ -93,6 +121,7 @@ condições da tabela. Correções exigem também `AI_LOOP_ENABLED=true` e a aut
 
 | Entrada | Condições e efeito |
 |---|---|
+| `/ai-spec` em issue | Issue aberta, ator autorizado, `AI_ENABLED` e `AI_SPEC_ENABLED`; comenta proposta sem liberar implementação |
 | Comando em issue | `AI_ENABLED=true`, issue aberta com `ai:ready`, ator autorizado; inicia implementação |
 | Evento automático de PR | Mesmo repositório, fora de draft, `ai:ready`, abertura/novo commit/reabertura/saída de draft; encaminha revisão para dispatch na branch padrão |
 | Evento de PR com correção autorizada | Condições anteriores, `AI_LOOP_ENABLED=true` e `ai:autofix`; após o parecer, o controlador avalia a correção |
@@ -182,6 +211,7 @@ acompanhar uma execução já em andamento. Não há inferência nessa verifica�
 
 | Controle | Implementação atual |
 |---|---|
+| Cada rodada de especificação | 1 etapa, 540 segundos, estimativa USD 1; fora da reserva da PR |
 | Implementação inicial | 35 etapas, 900 segundos, estimativa USD 5 |
 | Cada revisão | 1 etapa, 540 segundos, estimativa USD 1 |
 | Cada correção | 20 etapas, 600 segundos, estimativa USD 3 |

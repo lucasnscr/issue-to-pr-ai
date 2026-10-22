@@ -2,7 +2,9 @@
 
 R1 e R2 possuem implementação: [avaliação do revisor](reviewer-evaluation.md) e
 [triagem/check de liberação](review-triage.md). Os resultados estão na [validação](validacao-review-quality-triage.md).
-As demais linhas abaixo são propostas. A prioridade parte
+O [catálogo de skills por issue/fase e `/ai-spec`](skills-catalog.md) também está implementado,
+com Graphify AST opcional; [evidências e limites](validacao-skills.md) separam os testes da
+implantação na branch padrão. As demais linhas abaixo são propostas. A prioridade parte
 do [laboratório real](validacao-engineering-loop.md): duas correções funcionaram, mas
 pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa recomendada
 é tornar a decisão de entrega mais confiável e a adoção mais reproduzível.
@@ -13,6 +15,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 |---|---|
 | Issue autorizada → código/testes → draft PR | Adaptação ainda específica ao catálogo Java |
 | Revisão estruturada e avaliação versionada | Reduzir falsos positivos e hipóteses sobre mudanças futuras com evidências |
+| Skills por fase, proveniência e especificação assistida | Medir efeito das skills, custo e decisões necessárias em tarefas novas |
 | Duas correções, triagem rastreável e check por SHA | Medir esforço de triagem e calibrar o revisor em mais casos |
 | Telemetria e artefatos por execução | Ausência de consolidação durável por tarefa/equipe |
 | Limites observados por execução/PR | Ausência de quota financeira global integrada ao provedor |
@@ -30,6 +33,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 | R6 | P1 | Quotas compartilhadas e conciliação financeira | Reservas concorrentes de várias PRs respeitam quota da equipe; uma política bloqueia chamadas antes de exceder a quota disponível; faturamento conciliado separadamente | Armazenamento transacional, R5 e integração com provedor/gateway |
 | R7 | P2 | Perfil de verificações de segurança | Achado demonstrável de código/dependência/segredo bloqueia a entrega conforme política; artefatos e permissões mínimas definidos | Política da equipe e checks de liberação |
 | R8 | P2 | Preview efêmero e runners isolados | Ambiente por PR com banco sintético, aceitação HTTP e limpeza após fechamento/falha; evidência de isolamento do ambiente escolhido | R4, identidade de implantação e infraestrutura de laboratório |
+| R9 | P1 | Avaliação comparativa e gestão de skills | Comparar baseline/seleções em tarefas idênticas; medir defeitos, falsos positivos, intervenções e custo com mesmas versões; promoção exige evidência e responsável | Catálogo por fase e R1 |
 
 P0 significa a próxima prioridade sugerida para este projeto; não é a severidade P0 de um
 achado de código. Cada linha deve virar uma tarefa pequena com critérios próprios somente

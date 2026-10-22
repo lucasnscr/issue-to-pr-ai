@@ -12,9 +12,17 @@ minutos, estimativa de USD 1 e 80 mil unidades. Os valores são parâmetros do
 laboratório, não uma recomendação de orçamento corporativo. O perfil `correction` permite
 20 etapas, dez minutos, estimativa de USD 3 e 750 mil unidades, dentro do ciclo opcional descrito abaixo.
 
+O perfil `specification` usa os limites de `review` em cada comando `/ai-spec`, em uma
+execução separada. Rodadas repetidas geram consumo adicional e não entram na reserva de
+USD 9 da PR. O subprocesso recebe somente a credencial do provedor e variáveis permitidas;
+propostas sem telemetria completa são bloqueadas. Perguntas não concedem autorização para implementar.
+O [catálogo](skills-catalog.md) registra seleção, hashes, fontes e licenças por fase.
+Skills mantêm as permissões do revisor/corretor. Graphify usa parsing AST sem backend LLM,
+sem receber credenciais, e deixa hashes/contagens do grafo; isso não elimina o custo do runner.
+
 O fluxo controlado de implementação (`/oc` e `@claude`) executa
 `scripts/run-implementation.mjs`, selecionando o CLI com `IMPLEMENTATION_AGENT`.
-O caminho OpenCode, `scripts/run-review.mjs` e `scripts/run-correction.mjs` usam
+O caminho OpenCode, `scripts/run-review.mjs`, `scripts/run-specification.mjs` e `scripts/run-correction.mjs` usam
 `scripts/run-governed-opencode.mjs`. O wrapper valida o modelo antes de iniciar o
 processo, acompanha eventos JSON, encerra o grupo de processos ao exceder o tempo
 ou um limite observado e bloqueia uma conclusão sem telemetria completa. Não há

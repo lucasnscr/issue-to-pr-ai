@@ -98,6 +98,13 @@ jobs:
             }
             const prepare = require('./.github/scripts/review-context.cjs');
             await prepare({ github, context, core });
+      - name: Prepare selected graph without checking out the PR
+        if: steps.patch.outputs.ready == 'true'
+        uses: ./.github/actions/prepare-skill-graph
+        with:
+          manifest: ${{ steps.patch.outputs.directory }}/skills-manifest.json
+          target: ${{ steps.patch.outputs.directory }}
+          kind: review
       - name: Generate review without a GitHub write token
         id: agent
         if: steps.patch.outputs.ready == 'true'

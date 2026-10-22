@@ -1,0 +1,72 @@
+name: AI specification
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: read
+concurrency:
+  group: ai-specification-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  specify:
+    if: >-
+      vars.AI_ENABLED == 'true' && vars.AI_SPEC_ENABLED == 'true' &&
+      github.event.comment.user.type == 'User' && !github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/ai-spec')
+    runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    env:
+      MODEL: ${{ vars.SPEC_MODEL || 'anthropic/claude-sonnet-4-6' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Identify trusted base
+        run: echo "CHECKOUT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Authorize a human request and select specification skills
+        id: task
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { prepare } = require('./.github/scripts/specification.cjs');
+            await prepare({ github, context, core });
+      - name: Prepare selected graph from the trusted base
+        if: steps.task.outputs.ready == 'true'
+        uses: ./.github/actions/prepare-skill-graph
+        with:
+          manifest: ${{ steps.task.outputs.directory }}/skills-manifest.json
+          target: ${{ steps.task.outputs.directory }}
+          kind: specification
+      - name: Install pinned OpenCode CLI
+        if: steps.task.outputs.ready == 'true'
+        run: npm install --global opencode-ai@1.19.3
+      - name: Generate a proposal without tools or a GitHub token
+        if: steps.task.outputs.ready == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VLLM_BASE_URL: ${{ vars.VLLM_BASE_URL }}
+          VLLM_API_KEY: ${{ secrets.VLLM_API_KEY }}
+          SPEC_DIRECTORY: ${{ steps.task.outputs.directory }}
+        run: node scripts/run-specification.mjs
+      - name: Re-authorize and publish the proposal as a comment
+        if: steps.task.outputs.ready == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          SPEC_DIRECTORY: ${{ steps.task.outputs.directory }}
+        with:
+          script: |
+            const { publish } = require('./.github/scripts/specification.cjs');
+            await publish({ github, context, core });
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always() && steps.task.outputs.ready == 'true'
+        with:
+          name: ai-specification-${{ github.event.issue.number }}-${{ github.run_id }}
+          path: artifacts/
+          retention-days: 14

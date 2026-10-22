@@ -46,6 +46,7 @@ jobs:
       base_ref: ${{ steps.task.outputs.base_ref }}
       base_sha: ${{ steps.task.outputs.base_sha }}
       branch: ${{ steps.task.outputs.branch }}
+      selected_skills: ${{ steps.task.outputs.selected_skills }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,6 +70,17 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
+      - name: Prepare graph from the trusted base when selected
+        uses: ./.github/actions/prepare-skill-graph
+        with:
+          manifest: ${{ steps.task.outputs.skills_manifest }}
+          target: ${{ steps.task.outputs.task }}
+          kind: implementation
+      - name: Preserve skill provenance
+        run: |
+          mkdir -p artifacts
+          cp "$RUNNER_TEMP/implementation-skills.json" artifacts/skills-manifest.json
+          if [ -f "$RUNNER_TEMP/graph-context.json" ]; then cp "$RUNNER_TEMP/graph-context.json" artifacts/graph-context.json; fi
       - name: Install pinned OpenCode
         if: needs.authorize.outputs.agent == 'opencode'
         run: npm install --global opencode-ai@1.19.3
@@ -174,6 +186,8 @@ jobs:
           BRANCH: ${{ needs.implement.outputs.branch }}
           BASE_REF: ${{ needs.implement.outputs.base_ref }}
           ISSUE_NUMBER: ${{ needs.implement.outputs.issue }}
+          SELECTED_SKILLS: ${{ needs.implement.outputs.selected_skills }}
+          CATALOG_COMMIT: ${{ needs.implement.outputs.base_sha }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -187,6 +201,7 @@ jobs:
             printf 'Execução e consumo: https://github.com/%s/actions/runs/%s\n\n' "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
             printf 'Revisão humana necessária. A IA não aprovou nem integrou esta PR.\n'
           } > "$RUNNER_TEMP/pr.md"
+          node scripts/publish-skill-selection.cjs "$RUNNER_TEMP/pr.md"
           PR_URL=$(gh pr create --draft --base "$BASE_REF" --head "$BRANCH" --title "feat: implement issue #$ISSUE_NUMBER" --body-file "$RUNNER_TEMP/pr.md")
           PR_NUMBER=${PR_URL##*/}
           gh pr edit "$PR_NUMBER" --add-label ai:ready

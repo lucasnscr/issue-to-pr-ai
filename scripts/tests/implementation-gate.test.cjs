@@ -20,7 +20,7 @@ async function evaluate({ permission = 'write', issue = item, checkout = sha, cu
         getCollaboratorPermissionLevel: async () => ({ data: { permission } }),
         getCommit: async () => ({ data: { sha: current } }),
       }, issues: { get: async () => ({ data: issue }) } } } });
-    return { outputs, task: fs.readFileSync(outputs.task, 'utf8') };
+    return { outputs, task: fs.readFileSync(outputs.task, 'utf8'), skills: JSON.parse(fs.readFileSync(outputs.skills_manifest)) };
   } finally {
     for (const [key, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[key]; else process.env[key] = value;
@@ -46,4 +46,16 @@ test('moving base and oversized or missing task content fail closed', async () =
   await assert.rejects(evaluate({ current: 'b'.repeat(40) }), /branch moved/);
   await assert.rejects(evaluate({ issue: { ...item, body: '' } }), /description/);
   await assert.rejects(evaluate({ issue: { ...item, body: 'x'.repeat(20001) } }), /description/);
+});
+test('implementation captures the issue-selected skills and phase-specific provenance before inference', async () => {
+  const body = item.body + '\n### Skills\nsuperpower, graphify, postgres-flyway, grill-me';
+  const result = await evaluate({ issue: { ...item, body } });
+  assert.deepEqual(JSON.parse(result.outputs.selected_skills), ['graphify', 'grill-me', 'postgres-flyway', 'superpowers']);
+  assert.equal(result.outputs.graphify, 'true');
+  assert.equal(result.skills.catalogCommit, sha);
+  assert.deepEqual(result.skills.phases, ['implementation', 'testing']);
+  assert(result.task.includes('name: postgres-flyway'));
+  assert(result.task.includes('name: superpowers'));
+  assert(!result.task.includes('name: grill-me'));
+  await assert.rejects(evaluate({ issue: { ...item, body: item.body + '\n### Skills\n../../secrets' } }), /IDs/);
 });

@@ -50,6 +50,13 @@ jobs:
           script: |
             const { prepare } = require('./.github/scripts/engineering-loop.cjs');
             await prepare({ github, context, core });
+      - name: Prepare selected graph from trusted source before isolation
+        if: steps.plan.outputs.ready == 'true'
+        uses: ./.github/actions/prepare-skill-graph
+        with:
+          manifest: ${{ steps.plan.outputs.directory }}/skills-manifest.json
+          target: ${{ steps.plan.outputs.directory }}/plan.json
+          kind: correction
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: steps.plan.outputs.ready == 'true'
         with:

@@ -110,3 +110,30 @@ test('environment allowlist excludes arbitrary runner and cloud credentials', ()
     AWS_ACCESS_KEY_ID: 'secret', MODEL: 'model', ANTHROPIC_API_KEY: 'provider', GITHUB_RUN_ID: '123' }, s.correctionConfig(s.workspace));
   assert.deepEqual(Object.keys(filtered).sort(), ['ANTHROPIC_API_KEY', 'GITHUB_RUN_ID', 'OPENCODE_CONFIG_CONTENT', 'PATH']);
 }));
+
+test('selected correction skills reach the isolated agent without enabling commands', () => fixture(async s => {
+  const skills = require('../skills.cjs');
+  const plan = JSON.parse(fs.readFileSync(s.env.CORRECTION_PLAN));
+  plan.skills = skills.bundle({ selection: ['postgres-flyway', 'superpowers-test-driven-development'], phases: ['correction', 'testing'], commit: s.sha }).manifest;
+  fs.writeFileSync(s.env.CORRECTION_PLAN, JSON.stringify(plan));
+  await s.runCorrection({ env: s.env, run: async (args, options) => {
+    assert(args[1].includes('name: postgres-flyway'));
+    assert(args[1].includes('name: superpowers-test-driven-development'));
+    const config = JSON.parse(options.env.OPENCODE_CONFIG_CONTENT);
+    assert.equal(config.agent.corrector.permission['*'], 'deny');
+    assert.equal(config.agent.corrector.permission.bash, undefined);
+    s.write(sourceFile, 'class Product { int price = 1; }\n', s.workspace);
+    s.write(testFile, 'class ProductIT { int regression = 1; }\n', s.workspace);
+    return s.result;
+  } });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(s.root, 'skills-manifest.json'))), plan.skills);
+}));
+
+test('changed skill provenance stops correction before creating the candidate workspace', () => fixture(async s => {
+  const plan = JSON.parse(fs.readFileSync(s.env.CORRECTION_PLAN));
+  plan.skills = require('../skills.cjs').bundle({ phases: ['correction', 'testing'] }).manifest;
+  plan.skills.catalogHash = '0'.repeat(64);
+  fs.writeFileSync(s.env.CORRECTION_PLAN, JSON.stringify(plan));
+  await assert.rejects(s.runCorrection({ env: s.env, run: () => assert.fail('Invalid provenance cannot reach the provider.') }), /integrity/);
+  assert(!fs.existsSync(s.workspace));
+}));

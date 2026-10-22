@@ -8,6 +8,7 @@ unit:
 
 check:
 	node --test scripts/tests/*.test.cjs
+	node scripts/validate-skills.cjs
 	.venv/bin/python scripts/validate_config.py
 	docker compose config --quiet
 	kubectl kustomize infra/kubernetes/application > /dev/null

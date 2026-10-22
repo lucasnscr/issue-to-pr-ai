@@ -4,6 +4,9 @@ Este documento explica o fluxo implementado no [Issue to PR AI](https://github.c
 Uma pessoa descreve a mudança em uma issue; um agente implementa; etapas independentes validam o resultado;
 um publisher abre uma draft PR; CI e revisão consultiva ajudam o mantenedor a avaliar a entrega.
 Com autorização adicional, o ciclo propõe até duas correções na mesma PR e revalida cada commit.
+O [catálogo de skills](skills-catalog.md) permite selecionar práticas por issue e fase,
+incluindo Superpowers, grill-me e Graphify. `/ai-spec` oferece uma rodada opcional de
+perguntas e critérios propostos antes da implementação.
 O [modelo de trabalho](modelo-de-trabalho.md) define os acordos da equipe; a
 [arquitetura](architecture.md) explica componentes, estados e limites.
 
@@ -17,6 +20,9 @@ aprovada por uma organização nem uma integração com sistemas corporativos.
 ```mermaid
 flowchart TD
     I[Pessoa cria issue com critérios de aceitação] --> L[Adiciona ai:ready e comenta /oc ou @claude]
+    I --> SPEC[Skills e /ai-spec opcional]
+    SPEC --> DEC[Pessoa decide e incorpora os critérios]
+    DEC --> L
     L --> G[Actions autoriza ator, issue e base]
     G --> A[Agente implementa código, testes e documentação]
     A --> P[Política verifica consumo e limites]
@@ -66,6 +72,8 @@ Os workflows devem existir na branch padrão, atualmente `main`. Em Settings →
 |---|---|
 | Secret `ANTHROPIC_API_KEY` | Autenticar chamadas ao provedor Anthropic |
 | Variable `AI_ENABLED=true` | Habilitar implementações autorizadas |
+| Variable `AI_SPEC_ENABLED=true` | Habilitar `/ai-spec` para especificação sem implementação |
+| Variable `SPEC_MODEL` | Modelo do especificador; padrão `anthropic/claude-sonnet-4-6` |
 | Variable `CLAUDE_ENABLED=true` | Habilitar também o comando `@claude` |
 | Variable `AI_REVIEW_ENABLED=true` | Habilitar revisão consultiva |
 | Variable `AI_LOOP_ENABLED=true` | Autorizar o ciclo limitado somente nas PRs com `ai:autofix` |
@@ -79,7 +87,14 @@ O [guia de configuração](setup-cloud.md) detalha as permissões e o perfil opc
 
 ## 3. Criar uma issue executável
 
-A descrição deve informar o comportamento desejado e como conferir o resultado. Exemplo:
+A descrição deve informar o comportamento desejado e como conferir o resultado.
+No formulário, o campo **Skills** é opcional. Em Markdown, use `### Skills` seguido dos IDs,
+por exemplo `superpowers, postgres-flyway, graphify`. Sem seleção, aplicam-se os padrões da
+fase. Um colaborador pode comentar `/ai-spec` para levantar decisões pendentes; depois
+incorpora as respostas à descrição e solicita a implementação. O comando não adiciona
+`ai:ready`. Consulte o catálogo para limites, fontes e exemplos de novas rodadas.
+
+Exemplo de tarefa:
 
 ```markdown
 ## Objetivo

@@ -129,6 +129,17 @@ test('original issue acceptance criteria are read before exposing a model creden
   assert.equal(plan.issue.number, 21); assert.match(plan.issue.body, /contrato/);
 }));
 
+test('correction plan inherits selected IDs from the PR and records the trusted phase context', () => scenario(async s => {
+  const skills = require('../skills.cjs');
+  s.pr.body = skills.encodeManifest(skills.bundle({ selection: ['superpowers', 'postgres-flyway'], phases: ['implementation', 'testing'], commit: base }).manifest);
+  await s.prepare();
+  const plan = JSON.parse(fs.readFileSync(path.join(s.outputs.directory, 'plan.json')));
+  assert.deepEqual(plan.skills.selected, ['postgres-flyway', 'superpowers']);
+  assert.deepEqual(plan.skills.phases, ['correction', 'testing']);
+  assert.equal(plan.skills.catalogCommit, base);
+  assert(plan.skills.used.some(skill => skill.id === 'integration-tests'));
+}));
+
 test('a partial publication records its commit and requires intervention when dispatch fails', () => scenario(async s => {
   await s.prepare(); await s.finish(second, 'failure');
   assert.equal(s.state().status, 'needs-human');

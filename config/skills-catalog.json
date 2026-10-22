@@ -1,0 +1,323 @@
+{
+  "version": 1,
+  "maxSelection": 8,
+  "maxContextBytes": 16000,
+  "aliases": {
+    "superpower": "superpowers",
+    "grapify": "graphify"
+  },
+  "defaults": {
+    "specification": [
+      "grill-me",
+      "superpowers-writing-plans"
+    ],
+    "implementation": [
+      "java-spring-api"
+    ],
+    "testing": [
+      "integration-tests"
+    ],
+    "review": [
+      "code-review"
+    ],
+    "correction": [
+      "java-spring-api",
+      "integration-tests"
+    ]
+  },
+  "graphify": {
+    "package": "graphifyy",
+    "version": "0.9.93",
+    "maxContextBytes": 4000,
+    "maxFiles": 200,
+    "timeoutSeconds": 120
+  },
+  "skills": [
+    {
+      "id": "java-spring-api",
+      "version": "1.0.0",
+      "phases": [
+        "implementation",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/java-spring-api/SKILL.md",
+          "phases": [
+            "implementation",
+            "correction"
+          ],
+          "sha256": "6a833789bd32f6b60cfe6dba55fc9ad106c8ec353685be4a309019a82339aebc"
+        }
+      ]
+    },
+    {
+      "id": "postgres-flyway",
+      "version": "1.0.0",
+      "phases": [
+        "implementation",
+        "testing",
+        "review",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/postgres-flyway/SKILL.md",
+          "phases": [
+            "implementation",
+            "testing",
+            "review",
+            "correction"
+          ],
+          "sha256": "35847f74219d8385bcecf71b6fa7d472a33697335be137614e84f648a2110124"
+        }
+      ]
+    },
+    {
+      "id": "integration-tests",
+      "version": "1.0.0",
+      "phases": [
+        "implementation",
+        "testing",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/integration-tests/SKILL.md",
+          "phases": [
+            "implementation",
+            "testing",
+            "correction"
+          ],
+          "sha256": "182fbe305bdc1a040211078457251be780d9edc38a8d08a40972208709506bb3"
+        }
+      ]
+    },
+    {
+      "id": "code-review",
+      "version": "1.0.0",
+      "phases": [
+        "review"
+      ],
+      "resources": [
+        {
+          "path": "skills/code-review/SKILL.md",
+          "phases": [
+            "review"
+          ],
+          "sha256": "d34613a0532061c73d3f068f1f46f4ace654aff6a14ea2646994a833c60a6a31"
+        }
+      ]
+    },
+    {
+      "id": "grill-me",
+      "version": "1.0.0",
+      "phases": [
+        "specification"
+      ],
+      "resources": [
+        {
+          "path": "skills/grill-me/SKILL.md",
+          "phases": [
+            "specification"
+          ],
+          "sha256": "af8e532b4a82fe898c920bdb64c6299184278710952620f18b8bdde7a1de6eed"
+        }
+      ],
+      "upstream": {
+        "repository": "mattpocock/skills",
+        "commit": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "superpowers",
+      "version": "1.0.0",
+      "phases": [
+        "specification",
+        "implementation",
+        "testing",
+        "review",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/superpowers/SKILL.md",
+          "phases": [
+            "specification",
+            "implementation",
+            "testing",
+            "review",
+            "correction"
+          ],
+          "sha256": "b5b748662d2cf530e454a0f5801dab64ad0170fafd1a2d5e40a946a96b19f020"
+        },
+        {
+          "path": "skills/superpowers/references/specification.md",
+          "phases": [
+            "specification"
+          ],
+          "sha256": "c1f8e09bad78c852c139aa88d29facf071ef0948e6ea7a70281baa0ab7175880"
+        },
+        {
+          "path": "skills/superpowers/references/implementation.md",
+          "phases": [
+            "implementation"
+          ],
+          "sha256": "cf4e42129241dab74fa7257db08192c471e816b97a7f0a1372464bf8de0a6011"
+        },
+        {
+          "path": "skills/superpowers/references/testing.md",
+          "phases": [
+            "testing"
+          ],
+          "sha256": "0bd15a0ad720a124726aecd106e652ee5046242dbfc7c18c177023875b7bd53a"
+        },
+        {
+          "path": "skills/superpowers/references/review.md",
+          "phases": [
+            "review"
+          ],
+          "sha256": "3d385901fc466e4af63732b58c004e01f585d154baf72aa5c199d9ec47ba41f9"
+        },
+        {
+          "path": "skills/superpowers/references/correction.md",
+          "phases": [
+            "correction"
+          ],
+          "sha256": "1e5ca1c037e5ca1e7cbcb3e108cf50f5995b92d57b53ef668d832984e8ad5728"
+        }
+      ],
+      "upstream": {
+        "repository": "obra/superpowers",
+        "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "superpowers-writing-plans",
+      "version": "1.0.0",
+      "phases": [
+        "specification",
+        "implementation"
+      ],
+      "resources": [
+        {
+          "path": "skills/superpowers-writing-plans/SKILL.md",
+          "phases": [
+            "specification",
+            "implementation"
+          ],
+          "sha256": "9f2a9dcab07e883345f7185bc37edef18a14ec358136dc76ca5f29f00c130eec"
+        }
+      ],
+      "upstream": {
+        "repository": "obra/superpowers",
+        "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "superpowers-test-driven-development",
+      "version": "1.0.0",
+      "phases": [
+        "implementation",
+        "testing",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/superpowers-test-driven-development/SKILL.md",
+          "phases": [
+            "implementation",
+            "testing",
+            "correction"
+          ],
+          "sha256": "778167c3c98d20f355ab56968f38e4efd338f751fae00b7db3804900ae31891d"
+        }
+      ],
+      "upstream": {
+        "repository": "obra/superpowers",
+        "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "superpowers-systematic-debugging",
+      "version": "1.0.0",
+      "phases": [
+        "implementation",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/superpowers-systematic-debugging/SKILL.md",
+          "phases": [
+            "implementation",
+            "correction"
+          ],
+          "sha256": "304fb8d784c6c6d10d9e43e3f45c410afb521b35a0b59353bd9e1c81d710ae3b"
+        }
+      ],
+      "upstream": {
+        "repository": "obra/superpowers",
+        "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "superpowers-verification-before-completion",
+      "version": "1.0.0",
+      "phases": [
+        "implementation",
+        "testing",
+        "review",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/superpowers-verification-before-completion/SKILL.md",
+          "phases": [
+            "implementation",
+            "testing",
+            "review",
+            "correction"
+          ],
+          "sha256": "97d31a16130ff9444fda6ed4fba4133ba600ec8f6ab797748c28269d78696c2b"
+        }
+      ],
+      "upstream": {
+        "repository": "obra/superpowers",
+        "commit": "2ce8aa15d05bd57213e6f746f953aafb7ded7a8b",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "graphify",
+      "version": "1.0.0",
+      "phases": [
+        "specification",
+        "implementation",
+        "review",
+        "correction"
+      ],
+      "resources": [
+        {
+          "path": "skills/graphify/SKILL.md",
+          "phases": [
+            "specification",
+            "implementation",
+            "review",
+            "correction"
+          ],
+          "sha256": "f6331c350556176e00021d4bf5f8bb2b7e297a02b42786bb90a3f4d81e76cdfd"
+        }
+      ],
+      "upstream": {
+        "repository": "Graphify-Labs/graphify",
+        "commit": "847a93f3cab5e2c82ea9170014b21cd2c52a4417",
+        "license": "Apache-2.0"
+      }
+    }
+  ]
+}

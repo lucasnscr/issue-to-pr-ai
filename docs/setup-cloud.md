@@ -8,6 +8,8 @@ Os workflows devem estar na branch padrão. Configure os Repository secrets na i
 |---|---|---|
 | Secret | `ANTHROPIC_API_KEY` | OpenCode/Claude Code com Anthropic |
 | Variable | `AI_ENABLED` | `true` habilita comandos autorizados |
+| Variable | `AI_SPEC_ENABLED` | `true` habilita rodadas de especificação por `/ai-spec` |
+| Variable | `SPEC_MODEL` | Opcional; padrão `anthropic/claude-sonnet-4-6` |
 | Variable | `CLAUDE_ENABLED` | `true` habilita também `@claude` |
 | Variable | `AI_REVIEW_ENABLED` | `true` habilita revisão consultiva |
 | Variable | `AI_LOOP_ENABLED` | `true` habilita correção limitada nas PRs com `ai:autofix` |
@@ -24,7 +26,7 @@ Nenhum PAT adicional é necessário. O publisher dispara CI e revisão explicita
 
 ## Implementação por comentário
 
-1. Crie uma issue com tarefa pequena, escopo e critérios verificáveis.
+1. Crie uma issue com tarefa pequena, escopo, critérios verificáveis e as skills desejadas no formulário.
 2. Adicione a label `ai:ready`.
 3. Um colaborador com escrita comenta `/oc implemente esta issue` ou `@claude implemente esta issue`.
 4. O gate reconsulta ator, label, estado e SHA da branch padrão.
@@ -37,6 +39,13 @@ Nenhum PAT adicional é necessário. O publisher dispara CI e revisão explicita
 O caminho atual usa `opencode run` ou `claude --bare -p`, com CLIs fixadas.
 O comentário continua sendo o gatilho GitHub, mas a publicação não depende de `opencode github run` ou de uma decisão do modelo.
 Comentários em PRs não iniciam implementação. Use uma nova issue para cada tarefa.
+
+Para esclarecer requisitos antes de adicionar `ai:ready`, use `/ai-spec` com as variáveis
+de especificação ativas. Cada rodada produz perguntas/recomendações e critérios propostos
+em um comentário, sem alterar a issue ou iniciar código. Copie as decisões para a descrição
+ou para um novo `/ai-spec`; o histórico inteiro não é enviado ao modelo. Veja
+[skills, configuração e exemplos](skills-catalog.md). A seleção acompanha a PR e o
+artefato `skills-manifest.json`; Graphify é instalado somente em virtualenv efêmero quando selecionado.
 
 Os limites e a telemetria ficam em [governança](governance.md). O artefato contém resumo, consumo estimado,
 patch candidato e relatórios. A versão validada contém também `implementation.patch`.

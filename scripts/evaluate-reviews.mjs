@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { digest, evaluateResponses, loadDataset } from './review-evaluation.mjs';
 import { runReview } from './run-review.mjs';
 import { loadPolicy } from './ai-policy.mjs';
+import skills from './skills.cjs';
 
 export async function evaluate({ live = false, responsesFile, output = 'artifacts/reviewer-evaluation.json', env = process.env, review = runReview } = {}) {
   const config = JSON.parse(readFileSync(new URL('../config/review-evaluation.json', import.meta.url), 'utf8'));
@@ -13,7 +14,8 @@ export async function evaluate({ live = false, responsesFile, output = 'artifact
   let commit = 'unavailable';
   try { commit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore','pipe','ignore'] }).trim(); } catch {}
   const provenance = { mode: live ? 'live' : 'supplied', model: live ? env.MODEL : 'supplied-responses', commit,
-    policyHash: digest(policyText), evaluationPolicyHash: digest(JSON.stringify(config)), opencodeVersion: live ? config.opencodeVersion : null };
+    policyHash: digest(policyText), evaluationPolicyHash: digest(JSON.stringify(config)), opencodeVersion: live ? config.opencodeVersion : null,
+    skills: skills.bundle({ phases: ['review'], commit: /^[a-f0-9]{40}$/.test(commit) ? commit : null }).manifest };
   const responses = [];
   const usages = [];
   let spent = 0;

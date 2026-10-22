@@ -22,6 +22,13 @@ jobs:
       - name: Verify a clean checkout
         run: git diff --exit-code
       - run: node --test scripts/tests/*.test.cjs
+      - name: Validate skill provenance and catalog integrity
+        run: node scripts/validate-skills.cjs
+      - name: Exercise the pinned Graphify CLI without a provider
+        run: |
+          python3 -m venv "$RUNNER_TEMP/graphify-smoke"
+          "$RUNNER_TEMP/graphify-smoke/bin/pip" install --disable-pip-version-check 'graphifyy==0.9.93'
+          python3 scripts/graphify-context.py --command "$RUNNER_TEMP/graphify-smoke/bin/graphify" --output "$RUNNER_TEMP/graphify-smoke.json"
       - name: Validate offline review evaluation example
         run: node scripts/evaluate-reviews.mjs --responses evals/reviewer/v1/example-responses.json
       - name: Validate configuration
