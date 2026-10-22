@@ -4,7 +4,9 @@ R1 e R2 possuem implementação: [avaliação do revisor](reviewer-evaluation.md
 [triagem/check de liberação](review-triage.md). Os resultados estão na [validação](validacao-review-quality-triage.md).
 O [catálogo de skills por issue/fase e `/ai-spec`](skills-catalog.md) também está implementado,
 com Graphify AST opcional; [evidências e limites](validacao-skills.md) separam os testes da
-implantação na branch padrão. As demais linhas abaixo são propostas. A prioridade parte
+implantação na branch padrão. R3 agora possui bootstrap, doctor e organização de referência;
+a validação em um segundo repositório permanece pendente. Veja a
+[validação desta evolução](validacao-reference-method.md). As demais linhas abaixo são propostas. A prioridade parte
 do [laboratório real](validacao-engineering-loop.md): duas correções funcionaram, mas
 pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa recomendada
 é tornar a decisão de entrega mais confiável e a adoção mais reproduzível.
@@ -16,6 +18,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 | Issue autorizada → código/testes → draft PR | Adaptação ainda específica ao catálogo Java |
 | Revisão estruturada e avaliação versionada | Reduzir falsos positivos e hipóteses sobre mudanças futuras com evidências |
 | Skills por fase, proveniência e especificação assistida | Medir efeito das skills, custo e decisões necessárias em tarefas novas |
+| Índice, decisões, formulários, bootstrap e doctor | Validar adoção completa em uma segunda aplicação/repositório |
 | Duas correções, triagem rastreável e check por SHA | Medir esforço de triagem e calibrar o revisor em mais casos |
 | Telemetria e artefatos por execução | Ausência de consolidação durável por tarefa/equipe |
 | Limites observados por execução/PR | Ausência de quota financeira global integrada ao provedor |
@@ -27,7 +30,7 @@ pareceres especulativos consumiram o ciclo e exigiram triagem. A próxima etapa 
 |---|---|---|---|---|
 | R1 | Implementado | Avaliação reproduzível da qualidade do revisor | Dataset de seis casos, métricas, proveniência, modo offline e workflow real limitado; resultados reais devem ser conferidos por execução | [Guia e limites](reviewer-evaluation.md) |
 | R2 | Implementado | Triagem rastreável e check de liberação do ciclo | Comandos autorizados com justificativa, recibos por achado/SHA/run, reconhecimento de paradas e check bloqueado enquanto houver pendências; novo SHA invalida decisões antigas | [Guia e limites](review-triage.md) |
-| R3 | P1 | Template e bootstrap verificável | Novo repositório executa CI sem IA, detecta configuração ausente e completa uma tarefa de exemplo realmente nova, seguindo instruções reproduzíveis | Modelo de trabalho e perfil atual |
+| R3 | Parcial | Template e bootstrap verificável | Bootstrap/doctor e organização implementados; falta uma cópia independente executar CI e tarefa realmente nova. Configuração pronta na origem não comprova essa adoção | [Adoção](runbooks/adoption.md) e [validação](validacao-reference-method.md) |
 | R4 | P1 | Workflows reutilizáveis e adaptadores por stack | Dois repositórios consomem a mesma versão de orquestração; um segundo perfil troca build/testes/caminhos sem alterar controles de publicação | R3 e contrato de entradas/saídas |
 | R5 | P1 | Histórico operacional e painel do ciclo | Consultar issue, PR, SHAs, tentativas, estado, triagem e consumo agregado; distinguir custo estimado, faturado e indisponível | Schema de eventos e retenção; R2 para decisões de triagem |
 | R6 | P1 | Quotas compartilhadas e conciliação financeira | Reservas concorrentes de várias PRs respeitam quota da equipe; uma política bloqueia chamadas antes de exceder a quota disponível; faturamento conciliado separadamente | Armazenamento transacional, R5 e integração com provedor/gateway |
@@ -58,15 +61,17 @@ o processo não o aplica. Veja [proteção de branches no GitHub](https://docs.g
 
 ## R3 e R4: distribuição e adaptação
 
-O bootstrap proposto deve verificar ferramentas, permissões, nomes da branch padrão,
-proteção, perfis de validação e presença de configuração, sem mostrar valores de secrets.
-A prévia não altera o GitHub; mudanças exigem uma ação explícita do mantenedor.
-Os exemplos devem distinguir funcionalidades já existentes de novas tarefas, evitando
-reabrir o exercício de categorias como se estivesse pendente.
+O bootstrap implementado aplica metadados/topics/labels somente com destino explícito e
+`--apply`; a prévia não acessa o GitHub. O doctor verifica fontes, ferramentas opcionais e
+configuração GitHub por perfil, sem valores de secrets. Proteções e ativação de IA ficam
+fora das mutações do bootstrap. Os exemplos históricos exigem confirmação explícita e
+não devem virar trabalho pendente na base atual.
 
-Marcar um repositório como template permite gerar projetos a partir dos arquivos e da
-estrutura; essa opção ainda não foi ativada aqui. Referência: [template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).
-Essa distribuição deve ter versão e guia de atualização para os consumidores.
+Marcar o repositório como template faz parte da configuração desejada aplicada pelo bootstrap;
+confira o estado efetivo no doctor e no relatório da entrega. Isso permite gerar arquivos e
+estrutura, mas não replica a configuração GitHub. Referência: [template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository).
+A configuração do método possui versão; distribuição por releases e atualização coordenada
+entre consumidores ainda precisam de validação própria.
 
 Workflows centrais propostos usariam `workflow_call`, com entradas, secrets e permissões
 explícitos, consumidos por revisão imutável. Um adaptador descreveria caminhos, build,
@@ -102,6 +107,6 @@ manifestos atuais e a execução do catálogo em kind não comprovam esses compo
 ## Proposta de primeiro incremento
 
 Com **R1/R2** implementados, ampliar a coleta de qualidade e observar a triagem no piloto.
-Depois, validar **R3** em um segundo repositório antes de generalizar a orquestração em **R4**.
+Depois, concluir **R3** com um segundo repositório antes de generalizar a orquestração em **R4**.
 R5/R6 podem evoluir quando houver eventos e volume suficientes para justificar a operação
 compartilhada. A expansão depende de evidências de qualidade, esforço de revisão e consumo.

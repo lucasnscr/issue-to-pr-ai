@@ -25,10 +25,23 @@ def main():
     assert config["agent"]["specifier"]["permission"] == {"*": "deny"}
     assert "steps" not in config["agent"]["specifier"]
     catalog = json.loads((ROOT / "config/skills-catalog.json").read_text())
-    form = yaml.safe_load((ROOT / ".github/ISSUE_TEMPLATE/feature.yml").read_text())
-    selector = next(field for field in form["body"] if field.get("id") == "skills")
-    assert selector["attributes"]["label"] == "Skills" and selector["attributes"]["multiple"] is True
-    assert set(selector["attributes"]["options"]) == {skill["id"] for skill in catalog["skills"]}
+    repository = json.loads((ROOT / "config/repository.json").read_text())
+    label_names = {label["name"] for label in repository["github"]["labels"]}
+    forms = ROOT / ".github/ISSUE_TEMPLATE"
+    for filename in ("feature.yml", "bug.yml", "maintenance.yml"):
+        form = yaml.safe_load((forms / filename).read_text())
+        assert set(form["labels"]) <= label_names
+        assert not {"ai:ready", "ai:autofix"}.intersection(form["labels"]), "Forms cannot authorize inference or correction"
+        assert any(field.get("id") == "acceptance" and field["validations"]["required"] for field in form["body"])
+        assert any(field.get("id") == "scope" and field["validations"]["required"] for field in form["body"])
+        selector = next((field for field in form["body"] if field.get("id") == "skills"), None)
+        if filename != "maintenance.yml":
+            assert selector is not None
+        if selector:
+            assert selector["attributes"]["label"] == "Skills" and selector["attributes"]["multiple"] is True
+            assert set(selector["attributes"]["options"]) == {skill["id"] for skill in catalog["skills"]}
+    assert yaml.safe_load((forms / "config.yml").read_text())["blank_issues_enabled"] is False
+    assert (ROOT / ".github/CODEOWNERS").is_file()
     specification = yaml.safe_load((ROOT / ".github/workflows/ai-specification.yml").read_text())
     assert "vars.AI_SPEC_ENABLED == 'true'" in specification["jobs"]["specify"]["if"]
     assert specification["jobs"]["specify"]["permissions"] == {"contents": "read", "issues": "write"}

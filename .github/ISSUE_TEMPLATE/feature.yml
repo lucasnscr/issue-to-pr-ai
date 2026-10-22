@@ -1,6 +1,7 @@
 name: Funcionalidade para o agente
 description: Descreva uma mudança verificável no catálogo
 title: '[feature] '
+labels: ['type:feature', 'status:triage']
 body:
   - type: textarea
     id: problem
@@ -24,6 +25,8 @@ body:
     attributes:
       label: Escopo e restrições
       placeholder: Preserve a paginação atual. Altere apenas a API e seus testes.
+    validations:
+      required: true
   - type: markdown
     attributes:
       value: 'Catálogo e exemplos em [docs/skills-catalog.md](https://github.com/lucasnscr/issue-to-pr-ai/blob/main/docs/skills-catalog.md). A seleção acrescenta práticas aos padrões de cada fase; não amplia permissões.'

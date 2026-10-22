@@ -11,11 +11,12 @@ const args = process.argv.slice(2);
 const next = ['[demo] Listar categorias presentes no catálogo', '04-list-categories.md'];
 const examples = args.includes('--historical') ? [...historical, next] : [next];
 if (!args.includes('--create')) {
-  console.log('Prévia: nenhuma issue será criada.\n');
+  console.log('Prévia histórica: os quatro exercícios já estão implementados nesta referência. Nenhuma issue será criada.\n');
   for (const [title, file] of examples) console.log(`${title}\n  docs/demo-issues/${file}`);
-  console.log('\nPara criar: node scripts/seed-demo-issues.mjs --create --repo OWNER/REPOSITORY');
+  console.log('\nSomente para laboratório histórico em outra base: --create --acknowledge-historical --repo OWNER/REPOSITORY');
   process.exit(0);
 }
+if (!args.includes('--acknowledge-historical')) throw new Error('Os exercícios já estão implementados. Use --acknowledge-historical apenas para reproduzir um laboratório histórico em uma base apropriada.');
 const repository = args[args.indexOf('--repo') + 1];
 if (!args.includes('--repo') || !/^[\w.-]+\/[\w.-]+$/.test(repository || '')) {
   throw new Error('Informe --repo OWNER/REPOSITORY explicitamente.');

@@ -1,0 +1,43 @@
+name: Evolução do método ou manutenção
+description: Documentação, skills, workflows, dependências ou infraestrutura
+title: '[maintenance] '
+labels: ['type:maintenance', 'status:triage']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema e resultado esperado
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área principal
+      options:
+        - Documentação e método
+        - Skills e prompts
+        - GitHub Actions e scripts
+        - Dependências
+        - Docker e Kubernetes
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Escopo e limites
+      description: Declare quais controles/arquivos podem mudar e quais devem ser preservados.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite e validação
+      placeholder: |
+        - [ ] Comportamento verificável da mudança.
+        - [ ] Comandos, ambiente e evidências esperados.
+        - [ ] Contratos e proteções preservados.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: 'Este perfil segue uma PR conduzida pelo mantenedor. O implementador automático atual exige produção Java e testes de integração da aplicação; não remova controles para fazer uma tarefa de manutenção passar por esse caminho. `/ai-spec` pode apoiar a preparação quando habilitado.'

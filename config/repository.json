@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "method": { "name": "Issue to PR AI", "version": "1.0.0" },
+  "paths": {
+    "application": "apps/catalog-api",
+    "documentation": "docs/README.md",
+    "quickstart": "docs/quickstart.md",
+    "contributing": "CONTRIBUTING.md",
+    "security": "SECURITY.md",
+    "decisions": "docs/decisions/README.md"
+  },
+  "github": {
+    "defaultBranch": "main",
+    "template": true,
+    "description": "Método de trabalho com IA: issue, skills, implementação, testes reais, revisão, correção limitada e decisão do mantenedor.",
+    "topics": ["ai-engineering", "agentic-workflows", "github-actions", "developer-experience", "agent-skills", "java", "spring-boot", "postgresql"],
+    "labels": [
+      { "name": "type:feature", "color": "a2eeef", "description": "Funcionalidade com contrato e critérios de aceite" },
+      { "name": "type:bug", "color": "d73a4a", "description": "Defeito com reprodução e resultado esperado" },
+      { "name": "type:maintenance", "color": "cfd3d7", "description": "Manutenção de método, documentação, workflows ou infraestrutura" },
+      { "name": "status:triage", "color": "fbca04", "description": "Aguardando definição de escopo, responsável e critérios" },
+      { "name": "status:blocked", "color": "b60205", "description": "Impedimento explícito que exige intervenção" },
+      { "name": "area:application", "color": "1d76db", "description": "API, persistência, interface ou testes da aplicação" },
+      { "name": "area:automation", "color": "5319e7", "description": "Workflows, scripts de controle e integração GitHub" },
+      { "name": "area:documentation", "color": "0075ca", "description": "Guias, decisões, evidências e método de trabalho" },
+      { "name": "area:skills", "color": "7057ff", "description": "Catálogo, seleção, fases e proveniência de skills" },
+      { "name": "area:infrastructure", "color": "006b75", "description": "Docker, Kubernetes e ambiente de execução" },
+      { "name": "ai:ready", "color": "0e8a16", "description": "Autorização explícita do mantenedor para execução por IA" },
+      { "name": "ai:autofix", "color": "5319e7", "description": "Autorização explícita para o ciclo limitado de correção na PR" }
+    ]
+  }
+}

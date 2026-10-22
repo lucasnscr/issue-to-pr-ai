@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Guia do método de trabalho
+    url: https://github.com/lucasnscr/issue-to-pr-ai/blob/main/docs/README.md
+    about: Escolha a jornada, os comandos e as evidências antes de abrir uma tarefa.
+  - name: Uso e seleção de skills
+    url: https://github.com/lucasnscr/issue-to-pr-ai/blob/main/docs/skills-usage.md
+    about: Confira fases, exemplos, limites e configuração.

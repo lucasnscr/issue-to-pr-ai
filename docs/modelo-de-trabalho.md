@@ -8,6 +8,8 @@ O fluxo atual suporta OpenCode e Claude Code na implementação e OpenCode na re
 O corretor é opcional. [Cursor](cursor.md) é uma alternativa documentada, ainda sem execução
 autenticada neste laboratório. A [arquitetura](architecture.md) descreve os componentes e o
 [roadmap](roadmap.md) reúne melhorias propostas para reutilização e operação por equipes.
+O [índice](README.md), [quickstart](quickstart.md) e [decisões](decisions/README.md)
+organizam a referência; os [runbooks](runbooks/github-operations.md) descrevem sua operação.
 
 ## Papéis e responsabilidade pela entrega
 
@@ -154,9 +156,9 @@ satisfazem esse acordo de entrega.
 ## Adotar em outro repositório
 
 1. Escolher um mantenedor, um serviço de laboratório e tarefas pequenas com dados sintéticos.
-2. Copiar/forkar uma revisão conhecida e registrar a origem. Em 21/10/2026 este repositório
-   ainda não está marcado como template no GitHub; bootstrap e atualização entre projetos
-   são propostas do roadmap.
+2. Gerar pelo template quando disponível ou copiar/forkar uma revisão conhecida e registrar
+   a origem. Usar a prévia do [bootstrap e doctor](runbooks/adoption.md) para preparar o destino;
+   configuração da origem não é transferida automaticamente e atualização central continua proposta.
 3. Adaptar comandos, caminhos permitidos, contrato e critérios de aceitação ao serviço.
    Os scripts atuais conhecem `apps/catalog-api`, Java e seus testes HTTP.
 4. Configurar, no repositório de destino, proteção da branch, permissões, labels, variáveis

@@ -1,4 +1,19 @@
-.PHONY: test unit check up down run
+.PHONY: setup doctor verify acceptance test unit check up down run
+
+setup:
+	python3 -m venv .venv
+	.venv/bin/pip install --disable-pip-version-check -r requirements-dev.txt
+
+doctor:
+	node scripts/repository-doctor.mjs --offline
+
+verify: check test
+
+acceptance:
+	node scripts/smoke.mjs
+	node scripts/category-acceptance.mjs
+	node scripts/price-acceptance.mjs
+	node scripts/ordering-acceptance.mjs
 
 test:
 	./mvnw -B -ntp verify
@@ -9,6 +24,8 @@ unit:
 check:
 	node --test scripts/tests/*.test.cjs
 	node scripts/validate-skills.cjs
+	node scripts/validate-docs.mjs
+	node scripts/repository-doctor.mjs --offline
 	.venv/bin/python scripts/validate_config.py
 	docker compose config --quiet
 	kubectl kustomize infra/kubernetes/application > /dev/null

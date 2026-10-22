@@ -1,0 +1,56 @@
+name: Defeito reproduzível
+description: Registre entrada, resultado observado e contrato esperado
+title: '[bug] '
+labels: ['type:bug', 'status:triage']
+body:
+  - type: textarea
+    id: observed
+    attributes:
+      label: Resultado observado e reprodução
+      description: Inclua passos e entrada sintética mínima, sem credenciais.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado e contrato
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      placeholder: |
+        - [ ] A regressão reproduz o defeito.
+        - [ ] O reparo preserva o contrato e os fluxos existentes.
+        - [ ] Entradas inválidas não causam efeitos indevidos no banco.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Escopo, ambiente e evidências
+      description: Informe arquivos/componentes, SHA, comandos e resultados conhecidos.
+    validations:
+      required: true
+  - type: dropdown
+    id: skills
+    attributes:
+      label: Skills
+      description: Opcional; até oito IDs, filtrados por fase.
+      multiple: true
+      options:
+        - java-spring-api
+        - postgres-flyway
+        - integration-tests
+        - code-review
+        - grill-me
+        - superpowers
+        - superpowers-writing-plans
+        - superpowers-test-driven-development
+        - superpowers-systematic-debugging
+        - superpowers-verification-before-completion
+        - graphify
+  - type: markdown
+    attributes:
+      value: 'Triagem não autoriza o agente. Um colaborador deve confirmar escopo e critérios, adicionar `ai:ready` e criar um comentário `/oc` ou `@claude`. O ciclo corretivo exige autorização separada.'
