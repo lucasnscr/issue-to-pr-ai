@@ -3,6 +3,32 @@
 Entrega vinculada à [issue #45](https://github.com/lucasnscr/issue-to-pr-ai/issues/45), em
 21/10/2026. O [guia](skills-catalog.md) descreve o uso e a [arquitetura](architecture.md)
 mostra o fluxo. A aplicação e seus contratos não foram alterados nesta entrega.
+O [manual das 11 skills](skills-usage.md) detalha uso, efeito esperado, exemplos e
+conferência individual.
+
+## Validação para integração da PR #46
+
+A [PR #46](https://github.com/lucasnscr/issue-to-pr-ai/pull/46) recebeu revisão do diff de
+seleção, herança de IDs, composição dos prompts, permissões, extração de grafo e publicação
+de especificação. Não foram identificados defeitos bloqueantes nessa inspeção. Ela foi
+feita pelo Codex, sem uma chamada ao workflow de revisão por IA com provedor externo e
+sem representar revisão humana independente.
+
+A validação local foi repetida antes da integração: 153 testes Node e 84 Java com
+PostgreSQL real, catálogo/licenças/hashes válidos e configuração sem erros. Os 11 exemplos
+de seleção do novo manual foram resolvidos pelo loader para todas as fases; todos os IDs
+registrados têm seção e link para suas instruções, com caminhos locais válidos.
+
+A [CI 39703275257](https://github.com/lucasnscr/issue-to-pr-ai/actions/runs/39703275257),
+do commit `368ab78e8ddddc8a9c062d40c9bb09b5f8dd568f`, aprovou `Repository checks` e
+`Build and tests`, incluindo Graphify real, Maven/PostgreSQL, imagem Docker e aceitação
+HTTP. A documentação adicional passa pela mesma CI a cada novo commit da PR; o estado
+dos checks no GitHub identifica a execução correspondente ao último SHA.
+
+O check obrigatório `AI review gate` desta PR usa o caminho manual permitido para uma
+alteração sem autorização de inferência. Seu sucesso não significa que houve uma revisão
+do provedor. O merge solicitado pelo mantenedor continua sujeito aos checks obrigatórios
+do commit atual, sem remover proteções ou usar bypass administrativo.
 
 ## Evidência local
 
@@ -58,8 +84,9 @@ esses testes e verifica a compatibilidade com o formato produzido pela versão f
 ## O que permanece sem validação com provedor
 
 O novo `/ai-spec` e uma entrega completa issue → PR → revisão/correção com a seleção de
-skills precisam ser exercitados depois que estes workflows estiverem na branch padrão e
-`AI_SPEC_ENABLED=true` estiver configurado. CI e testes locais não são evidência dessa
+skills ainda não foram validados com provedor nesta entrega. Para exercitá-los, os workflows
+precisam estar na branch padrão e `AI_SPEC_ENABLED=true` deve estar configurado para a
+especificação. CI e testes locais não são evidência dessa
 execução com o modelo. As execuções anteriores do engineering loop permanecem documentadas
 nos relatórios históricos, com os prompts/políticas usados à época.
 

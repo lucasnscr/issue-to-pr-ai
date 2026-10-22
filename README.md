@@ -46,6 +46,7 @@ Escolha práticas de **Superpowers**, **grill-me**, **Graphify** e Java/PostgreS
 acompanha implementação, testes, revisão e correção, com hashes para auditoria.
 Veja o [catálogo e os exemplos](docs/skills-catalog.md) e a
 [validação da entrega](docs/validacao-skills.md).
+O [manual das 11 skills](docs/skills-usage.md) detalha o uso e o efeito de cada uma.
 
 ## Interface web
 

@@ -5,6 +5,9 @@ A issue seleciona **IDs**, e o pipeline carrega os arquivos aprovados da branch 
 As mesmas seleções acompanham a draft PR e suas correções. Skills complementam `AGENTS.md`;
 não concedem ferramentas, publicação, merge, subagentes ou orçamento adicional.
 
+O [manual de cada skill](skills-usage.md) explica quando usar, o que ela orienta/implementa,
+exemplos de seleção, entrega esperada e como conferir o resultado.
+
 Este conjunto foi escolhido pela adequação ao Java/Spring/PostgreSQL deste projeto e por
 ter fontes públicas verificáveis. Não existe aqui uma medição que demonstre que sejam as
 “melhores do mercado” ou que melhorem a qualidade do revisor. Use a
