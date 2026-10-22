@@ -132,7 +132,8 @@ O [laboratório posterior da PR #32](validacao-engineering-loop.md) publicou dua
 e parou em `needs-human`, com estimativa total de USD 0.53927370. A triagem assistida dos
 achados finais antecedeu a integração autorizada. A conclusão técnica do workflow não é
 uma aprovação da entrega. O [modelo de trabalho](modelo-de-trabalho.md) define esse acordo;
-triagem estruturada, evidência durável e quotas por equipe são propostas do [roadmap](roadmap.md).
+triagem estruturada já está implementada. Evidência durável fora da retenção dos artefatos
+e quotas por equipe continuam propostas do [roadmap](roadmap.md).
 
 Antes de conectar ambientes internos, os responsáveis devem definir:
 
@@ -156,7 +157,7 @@ validada com as equipes responsáveis, usando inicialmente dados sintéticos.
 ## Proteção aplicada neste repositório
 
 Em 21/10/2026 a `main` recebeu proteção efetiva pela API do GitHub: PR obrigatória,
-checks `Repository checks` e `Build and tests`, branch atualizada, conversas resolvidas,
+checks `Repository checks`, `Build and tests` e `AI review gate`, branch atualizada, conversas resolvidas,
 sem force push ou exclusão. As regras também se aplicam ao administrador.
 O laboratório tem um único mantenedor e exige zero aprovações adicionais.
 Para uma equipe, configure responsáveis e ao menos uma aprovação independente.

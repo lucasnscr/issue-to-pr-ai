@@ -27,6 +27,7 @@ test('bootstrap preview is read-only, explicit about its target and never activa
   assert.equal(result.settings.homepage, 'https://github.com/example/catalog/blob/main/docs/README.md');
   assert(!Object.hasOwn(result.settings, 'visibility')); assert(!Object.hasOwn(result.settings, 'default_branch'));
   assert(!JSON.stringify(result.settings).includes('AI_ENABLED'));
+  assert.equal(bootstrap({ repository: 'example/catalog', apply: 'false', api: () => assert.fail('Only boolean true can apply.') }).mode, 'preview');
   for (const repository of [undefined, 'owner/repo;echo token', 'https://github.com/owner/repo', '../private']) assert.throws(() => bootstrap({ repository }), /explicit/);
 });
 

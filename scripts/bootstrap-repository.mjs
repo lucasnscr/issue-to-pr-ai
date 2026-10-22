@@ -13,7 +13,7 @@ export function bootstrapPlan(repository, config = loadRepositoryConfig()) {
 
 export function bootstrap({ repository, apply = false, config = loadRepositoryConfig(), api = githubApi } = {}) {
   const plan = bootstrapPlan(repository, config);
-  if (!apply) return plan;
+  if (apply !== true) return plan;
   const prefix = `repos/${plan.repository}`;
   // Read existing state before the first mutation; failures cannot produce a
   // partial "success". Operations are idempotent; a failed apply can be retried.

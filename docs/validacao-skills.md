@@ -1,5 +1,9 @@
 # Validação do catálogo de skills
 
+Atualização posterior: a [validação da referência](validacao-reference-method.md) registra
+execuções reais de especificação e revisão com skills, Graphify e idempotência. O relato
+abaixo preserva o escopo e as limitações observados na entrega original do catálogo.
+
 Entrega vinculada à [issue #45](https://github.com/lucasnscr/issue-to-pr-ai/issues/45), em
 21/10/2026. O [guia](skills-catalog.md) descreve o uso e a [arquitetura](architecture.md)
 mostra o fluxo. A aplicação e seus contratos não foram alterados nesta entrega.
