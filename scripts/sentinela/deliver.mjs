@@ -12,6 +12,10 @@ export async function deliver({env=process.env,api=githubApi,request=fetch,deplo
   const context={...marker,repository:repo,service:env.SENTINELA_SERVICE,environment:env.SENTINELA_ENVIRONMENT,issueNumber:issue.number,pullRequestNumber:pr.number,commitSha:sha,artifactDigest:env.SENTINELA_ARTIFACT_DIGEST,deploymentId:env.SENTINELA_DEPLOYMENT_ID};
   const message=type=>({...context,type,id:eventId(type,marker.caseId,context.deploymentId),at:new Date().toISOString()});
   const run=type=>sendEvent(message(type),{env,request});
+  // A successful release build can reconcile a CI callback lost before merge.
+  // Use the PR head here; the deployment separately identifies the integrated SHA.
+  await sendEvent({...context,type:'implementation.published',commitSha:pr.head.sha,
+    id:eventId('implementation.published',marker.caseId,pr.head.sha),at:new Date().toISOString()},{env,request});
   await run('deployment.started');
   try{
     await deploy(context);await run('deployment.completed');

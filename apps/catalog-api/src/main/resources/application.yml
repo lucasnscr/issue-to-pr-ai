@@ -24,6 +24,7 @@ management:
   metrics:
     tags:
       service: ${spring.application.name}
+      environment: ${DEPLOYMENT_ENVIRONMENT:local}
     distribution:
       percentiles-histogram:
         http.server.requests: true
