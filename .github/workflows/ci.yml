@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
       - name: Verify a clean checkout
         run: git diff --exit-code
-      - run: node --test scripts/tests/*.test.cjs
+      - run: node --test scripts/tests/*.test.cjs scripts/check-staged-file-size.test.mjs
       - name: Validate reference structure and documentation links
         run: |
           node scripts/repository-doctor.mjs --offline

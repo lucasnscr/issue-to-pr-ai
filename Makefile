@@ -1,6 +1,7 @@
 .PHONY: setup doctor verify acceptance test unit check up down run
 
 setup:
+	node scripts/install-git-hooks.mjs
 	python3 -m venv .venv
 	.venv/bin/pip install --disable-pip-version-check -r requirements-dev.txt
 
@@ -22,7 +23,7 @@ unit:
 	./mvnw -B -ntp test
 
 check:
-	node --test scripts/tests/*.test.cjs
+	node --test scripts/tests/*.test.cjs scripts/check-staged-file-size.test.mjs
 	node scripts/validate-skills.cjs
 	node scripts/validate-docs.mjs
 	node scripts/repository-doctor.mjs --offline
