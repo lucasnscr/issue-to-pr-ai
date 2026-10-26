@@ -132,6 +132,7 @@ jobs:
           BASE_REF: ${{ needs.implement.outputs.base_ref }}
           ISSUE_NUMBER: ${{ needs.implement.outputs.issue }}
         run: |
+          node scripts/install-git-hooks.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           gh auth setup-git

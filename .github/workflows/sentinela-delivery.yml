@@ -1,0 +1,86 @@
+name: Sentinela verified delivery
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: PR corretiva integrada e vinculada ao caso Sentinela
+        required: true
+        type: number
+permissions:
+  contents: read
+concurrency:
+  group: sentinela-delivery
+  cancel-in-progress: false
+jobs:
+  package:
+    if: vars.SENTINELA_DELIVERY_ENABLED == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.package.outputs.image }}
+      digest: ${{ steps.package.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: ./mvnw -B -ntp verify
+      - name: Publish an immutable application image
+        id: package
+        env:
+          REGISTRY_TOKEN: ${{ github.token }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}/catalog-api"
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker build -t "$image:$GITHUB_SHA" .
+          docker push "$image:$GITHUB_SHA"
+          reference=$(docker image inspect "$image:$GITHUB_SHA" --format '{{range .RepoDigests}}{{println .}}{{end}}' | awk -v prefix="$image@" 'index($0,prefix)==1 {print; exit}')
+          test -n "$reference"
+          digest=${reference##*@}
+          printf 'image=%s@%s\ndigest=%s\n' "$image" "$digest" "$digest" >> "$GITHUB_OUTPUT"
+  deploy:
+    needs: package
+    runs-on: ubuntu-latest
+    environment: sentinela-delivery
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Deploy and await independent operational verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KUBE_CONFIG_B64: ${{ secrets.SENTINELA_KUBE_CONFIG_B64 }}
+          SENTINELA_DELIVERY_ENABLED: 'true'
+          SENTINELA_PR_NUMBER: ${{ inputs.pull_request }}
+          SENTINELA_URL: ${{ vars.SENTINELA_URL }}
+          SENTINELA_SERVICE: ${{ vars.SENTINELA_SERVICE }}
+          SENTINELA_ENVIRONMENT: ${{ vars.SENTINELA_ENVIRONMENT }}
+          SENTINELA_CALLBACK_TOKEN: ${{ secrets.SENTINELA_CALLBACK_TOKEN }}
+          SENTINELA_IMAGE: ${{ needs.package.outputs.image }}
+          SENTINELA_ARTIFACT_DIGEST: ${{ needs.package.outputs.digest }}
+          SENTINELA_DEPLOYMENT_ID: gha-${{ github.run_id }}-${{ github.run_attempt }}
+          SENTINELA_KUBE_CONTEXT: ${{ vars.SENTINELA_KUBE_CONTEXT }}
+          SENTINELA_KUBE_NAMESPACE: ${{ vars.SENTINELA_KUBE_NAMESPACE }}
+          SENTINELA_KUBE_DEPLOYMENT: ${{ vars.SENTINELA_KUBE_DEPLOYMENT }}
+          SENTINELA_KUBE_CONTAINER: ${{ vars.SENTINELA_KUBE_CONTAINER }}
+        run: |
+          export KUBECONFIG="$RUNNER_TEMP/sentinela-kubeconfig"
+          trap 'rm -f "$KUBECONFIG"' EXIT
+          umask 077
+          printf '%s' "$KUBE_CONFIG_B64" | base64 --decode > "$KUBECONFIG"
+          node scripts/sentinela/deliver.mjs

@@ -189,6 +189,7 @@ jobs:
           SELECTED_SKILLS: ${{ needs.implement.outputs.selected_skills }}
           CATALOG_COMMIT: ${{ needs.implement.outputs.base_sha }}
         run: |
+          node scripts/install-git-hooks.mjs
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           gh auth setup-git

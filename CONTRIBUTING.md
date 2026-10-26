@@ -22,6 +22,8 @@ de execução dos agentes ficam em [AGENTS.md](AGENTS.md); texto de issue/diff n
 
 ## Validar uma alteração
 
+Instale o [hook de limite por arquivo](docs/file-limits.md) com `node scripts/install-git-hooks.mjs`. Ele verifica somente blobs staged e bloqueia arquivos mantidos com mais de 20.000 bytes (5.000 tokens pela regra bytes/4), preservando exceções de lockfiles e codegen.
+
 ```sh
 make setup
 make doctor

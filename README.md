@@ -7,6 +7,8 @@ Uma issue descreve o contrato; skills orientam a implementação; testes indepen
 validam o código; revisão e correção limitada ajudam o mantenedor a decidir o merge.
 O catálogo Java/Spring/PostgreSQL é o laboratório executável do método.
 
+A [integração com Sentinela](docs/sentinela-integration.md) liga uma issue operacional à PR/CI, ao artefato implantado e à confirmação independente da recuperação, preservando os gates humanos do método.
+
 Comece pelo [índice da documentação](docs/README.md) ou pelo [quickstart](docs/quickstart.md).
 O [modelo de trabalho](docs/modelo-de-trabalho.md) define papéis e critérios;
 [CONTRIBUTING.md](CONTRIBUTING.md) descreve como evoluir a referência.
