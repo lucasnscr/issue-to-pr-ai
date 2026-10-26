@@ -18,7 +18,7 @@ test('entrega exige merge humano antes de qualquer mutação e faz rollback quan
  const deploy=async()=>{deploys++;},rollback=async()=>{rollbacks++;};
  const request=async(url,options)=>{if(options.method==='POST'){types.push(JSON.parse(options.body).type);return new Response('{}',{status:202});}return new Response(JSON.stringify({commitSha:sha,artifactDigest:env.SENTINELA_ARTIFACT_DIGEST,deploymentId:'d1',state:'regressed'}));};
  await assert.rejects(deliver({env,api:fixture(false),request,deploy,rollback}),/merge/);assert.equal(deploys,0);
- await assert.rejects(deliver({env,api:fixture(true),request,deploy,rollback,verifyOptions:{timeoutMs:100,pollMs:1}}),/rollback/);assert.equal(deploys,1);assert.equal(rollbacks,1);assert.deepEqual(types,['deployment.started','deployment.completed','deployment.rolled_back']);
+ await assert.rejects(deliver({env,api:fixture(true),request,deploy,rollback,verifyOptions:{timeoutMs:100,pollMs:1}}),/rollback/);assert.equal(deploys,1);assert.equal(rollbacks,1);assert.deepEqual(types,['implementation.published','deployment.started','deployment.completed','deployment.rolled_back']);
 });
 test('verificação de outro deploy e URL remota insegura são recusadas',async()=>{
  const {endpoint,waitForVerification}=await import('../sentinela/client.mjs');assert.throws(()=>endpoint({...env,SENTINELA_URL:'http://remote.example'}),/HTTPS/);
@@ -31,4 +31,15 @@ test('adaptador Kubernetes aplica digest com precondições e não sobrescreve m
  const execute=args=>{if(args.includes('get'))return JSON.stringify({metadata:{uid,resourceVersion:String(version)},spec:{template:{spec:{containers:[{name:'api',image:current}]}}}});if(args.includes('patch')){const patch=JSON.parse(args[args.indexOf('--patch')+1]);assert.ok(patch.some(item=>item.path==='/metadata/uid'&&item.value==='uid-1'));assert.ok(patch.some(item=>item.path==='/metadata/resourceVersion'&&item.value===String(version)));current=patch.at(-1).value;patches++;version++;}return '';};
  const adapter=kubernetes(settings,execute);await adapter.deploy();assert.equal(current,image);await adapter.rollback();assert.equal(current,old);assert.equal(patches,2);
  const stale=kubernetes(settings,execute);uid='replacement';await assert.rejects(stale.deploy(),/mudou/);assert.equal(patches,2);
+});
+
+test('entrega reconcilia callback perdido antes do deploy e preserva os SHAs distintos',async()=>{
+ const {deliver}=await import('../sentinela/deliver.mjs');const head='b'.repeat(40),types=[];
+ const api=async endpoint=>{const result=await fixture(true)(endpoint);if(endpoint.includes('/pulls/'))result.head.sha=head;return result;};
+ const request=async(url,options)=>{
+  if(options.method==='POST'){const event=JSON.parse(options.body);types.push(event);return new Response('{}',{status:202});}
+  return new Response(JSON.stringify({caseId,repository:repo,issueNumber:1,pullRequestNumber:2,commitSha:sha,artifactDigest:env.SENTINELA_ARTIFACT_DIGEST,deploymentId:'d1',state:'verified'}));
+ };
+ await deliver({env,api,request,deploy:async()=>{assert.equal(types[0].type,'implementation.published');assert.equal(types[0].commitSha,head);},rollback:async()=>assert.fail('rollback inesperado')});
+ assert.deepEqual(types.map(item=>item.type),['implementation.published','deployment.started','deployment.completed']);assert.equal(types[1].commitSha,sha);
 });

@@ -35,7 +35,11 @@ O primeiro job executa Maven com PostgreSQL e publica a imagem no GHCR. O segund
 
 Após o rollout, o pipeline informa o deploy e consulta o resultado no Sentinela. São necessárias três novas amostras saudáveis e com tráfego. A consulta confere caso, repositório, issue, PR, SHA, artefato e deploy; um resultado de outra mudança não libera a entrega. Ausência de confirmação ou timeout tenta rollback para a imagem anterior; resultado incerto exige intervenção. Merge/issue fechada não são prova de recuperação.
 
+Antes de `deployment.started`, a entrega reconcilia `implementation.published` usando o head da PR já integrada. Assim, um callback pós-CI perdido ou atrasado não bloqueia o caso indefinidamente. O SHA implantado é conferido por ancestralidade e pode diferir do head da PR. Reenvios do mesmo evento não duplicam a vinculação. O callback de rollback da mesma entrega revoga eventual verificação anterior, inclusive se a resposta de conclusão se perdeu.
+
 O catálogo agora fornece `/actuator/prometheus` com label `service=catalog-api` e histogramas HTTP. Proteja a rede de métricas na implantação. Configure Prometheus e as recording rules do Sentinela; o endpoint de health não substitui a medição do comportamento de negócio.
+
+Configure `DEPLOYMENT_ENVIRONMENT` no Deployment, com o mesmo ambiente de `SENTINELA_ENVIRONMENT`. O valor padrão do catálogo é `local`. As regras atualizadas preservam `environment` e fornecem `sentinela_service_observed_at_seconds` a partir da hora real do scrape, condicionada a `up == 1`. Dados de outro ambiente, futuros, antigos ou sem novas observações não comprovam recuperação. Configure intervalos de scrape/evaluation menores que a janela de frescor de 20 segundos; o exemplo usa cinco segundos.
 
 ## Contrato e teste conjunto
 
@@ -44,6 +48,7 @@ O contrato compartilhado deve permanecer byte a byte idêntico nos dois reposit�
 O teste completo é executado no checkout Sentinela:
 
 Consulte os [resultados e limites da validação](validacao-sentinela.md).
+Consulte também a [auditoria de callbacks e telemetria](validacao-auditoria-sdlc.md).
 
 ```sh
 ISSUE_TO_PR_AI_DIR=/caminho/issue-to-pr-ai npm run test:e2e:sdlc
