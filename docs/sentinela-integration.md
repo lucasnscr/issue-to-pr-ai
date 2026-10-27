@@ -71,3 +71,24 @@ O Sentinela permite tentativas sucessivas revisadas para o mesmo incidente, com 
 O workflow de sincronização usa a branch padrão confiável para acompanhar CI bem-sucedida/reprovada/cancelada, implementação autorizada interrompida e PR fechada sem merge. Não faz checkout do candidato nem lê artefatos com o segredo de callback. `pull_request_target` é usado apenas para ler metadados atuais de encerramento; forks e SHAs antigos são recusados. O implementador não recebe esse segredo.
 
 CI nova pode recuperar a mesma PR; eventos antigos não substituem o resultado mais recente. PR encerrada sem merge cancela a tentativa. Casos sem atividade são escalados pelo Sentinela e exigem decisão do mantenedor; entregas sem recibo ficam incertas até conferência do provedor. Isso não autoriza outro deploy nem repete rollback. Todos os recursos continuam desabilitados por padrão.
+
+## Aprendizado revisado e executável
+
+Depois da recuperação verificada, prepare e aprove uma versão no painel Sentinela. Responsável/revisor são declarações autorizadas pelo token de operação. O runbook aprovado entra no catálogo; regressão e avaliação são geradas no checkout deste repositório:
+
+```sh
+# Ambiente de controle: callback token somente nesta etapa, sem executar código candidato.
+node scripts/sentinela/learning.mjs fetch CASO VERSAO /tmp/aprendizado-aprovado.json
+# Checkout deve conter o commit verificado; use uma branch dedicada.
+# Remova o callback token do ambiente antes de gerar e executar Maven.
+unset SENTINELA_CALLBACK_TOKEN
+node scripts/sentinela/learning.mjs generate /tmp/aprendizado-aprovado.json lucasnscr/issue-to-pr-ai
+./mvnw -B -ntp verify
+node scripts/sentinela/learning.mjs evaluate evaluations/incidents/CASO/v1.json /tmp/resposta-diagnostico.json
+```
+
+`fetch` usa `SENTINELA_URL`, `SENTINELA_CALLBACK_TOKEN` e `GITHUB_REPOSITORY`. O arquivo local é criado com modo 0600; exporte apenas dados revisados e sintéticos. `generate` produz teste Java com PostgreSQL real, fixture JSON, runbook, caso de avaliação e manifesto com hashes/proveniência. Nenhum texto do incidente vira código ou comando. O perfil inicial cobre o catálogo Java; novos perfis exigem implementação e validação. Reenvio idêntico preserva arquivos, conflito exige nova versão aprovada. O hash confirma integridade, não autentica um arquivo obtido por canal externo.
+
+A avaliação independente de provedor verifica ação, palavras esperadas na causa e citações de evidências em `hypotheses[].supportingEvidence`; não é medida universal de qualidade do modelo. Resposta incorreta retorna exit code 1. Versione os artefatos gerados em PR e valide o teste na fonte defeituosa e corrigida. O teste conjunto do Sentinela faz isso com HTTP 503 e PostgreSQL reais; a revisão/CI de mudanças continuam obrigatórias. A geração não concede merge nem dispara agente. Ao reutilizar export histórico, confira se o caso continua verificado e a versão aprovada é atual.
+
+A aprovação também encaminha automaticamente uma issue `sentinela-learning/v1`, sem `ai:ready`. Habilite `SENTINELA_LEARNING_ENABLED=true` apenas depois de configurar o callback/receptor. O workflow `sentinela-learning.yml` busca a versão aprovada pelo canal autenticado, gera e valida Maven em job sem callback, e regenera o mesmo conjunto em publisher separado para abrir PR draft e disparar CI. O artefato aprovado expira em sete dias e representa a revisão histórica no início da execução. Reexecute o workflow para retomar; branch remota existente sem PR exige conferência, sem force push. O produto não aprova ou integra a PR.
