@@ -11,7 +11,9 @@ export async function sendEvent(input,{env=process.env,request=fetch}={}){
   if(response.status!==202)throw new Error('Sentinela recusou o evento SDLC: HTTP '+response.status);
   return response.json();
 }
-export async function waitForVerification(expected,{env=process.env,request=fetch,timeoutMs=360000,pollMs=3000,goal='correction'}={}){
+export function verificationTimeout(env=process.env){const value=Number(env.SENTINELA_VERIFY_TIMEOUT_MS||660000);if(!Number.isSafeInteger(value)||value<10000||value>660000)throw new Error('SENTINELA_VERIFY_TIMEOUT_MS deve estar entre 10000 e 660000.');return value;}
+export async function waitForVerification(expected,{env=process.env,request=fetch,timeoutMs=verificationTimeout(env),pollMs=3000,goal='correction'}={}){
+  if(!Number.isFinite(timeoutMs)||timeoutMs<=0||timeoutMs>660000)throw new Error('Prazo de verificação inválido.');
   if(!['correction','rollback'].includes(goal))throw new Error('Objetivo de verificação inválido.');
   const base=endpoint(env),deadline=Date.now()+timeoutMs;
   while(Date.now()<deadline){

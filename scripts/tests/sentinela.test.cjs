@@ -68,3 +68,7 @@ for(const invalid of [{replayed:true},{currentAttempt:false},{state:'verifying'}
  const request=async()=>new Response(JSON.stringify({caseId,state:'deploying',replayed:false,currentAttempt:true,...invalid}),{status:202});
  await assert.rejects(deliver({env,api:fixture(true),request,deploy:async()=>{mutations++;},rollback:async()=>{mutations++;}}),/tentativa atual/);assert.equal(mutations,0);
 });
+test('prazo de verificação inválido é recusado antes de qualquer mutação',async()=>{
+ const {deliver}=await import('../sentinela/deliver.mjs'),{verificationTimeout}=await import('../sentinela/client.mjs');assert.equal(verificationTimeout({}),660000);assert.equal(verificationTimeout({SENTINELA_VERIFY_TIMEOUT_MS:'120000'}),120000);
+ for(const value of ['NaN','-1','1000','660001']){let mutations=0;await assert.rejects(deliver({env:{...env,SENTINELA_VERIFY_TIMEOUT_MS:value},api:fixture(true),request:async()=>ack(),deploy:async()=>{mutations++;},rollback:async()=>{mutations++;}}),/TIMEOUT/);assert.equal(mutations,0);}
+});
