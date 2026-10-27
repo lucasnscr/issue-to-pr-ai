@@ -57,3 +57,7 @@ ISSUE_TO_PR_AI_DIR=/caminho/issue-to-pr-ai npm run test:e2e:sdlc
 Ele usa este código Java, os gates de autorização, o wrapper governado e os validadores reais, com PostgreSQL e testes HTTP. GitHub, resposta do agente e decisão de merge são controlados; não chama provedor comercial nem publica issues de teste. Uma regressão precisa falhar antes da correção e passar depois. O teste também exercita uma entrega defeituosa e rollback. Os recursos são isolados e removidos no final.
 
 Azure Functions já possui observação e ajustes no Sentinela; o adaptador de entrega deste piloto é Kubernetes. Outros destinos podem implementar as mesmas entradas/recibos, preservando os gates e os digests. A integração completa requer configurar e validar suas identidades, conectividade e políticas no ambiente escolhido.
+
+## Fase 1: confirmar a recuperação após rollback
+
+O recibo `deployment.rolled_back` confirma a execução e inicia `rollback_verifying`. O pipeline aguarda três novas observações saudáveis posteriores à reversão, com ambiente e identidade conferidos. `rolled_back` significa saúde recuperada, mantendo a correção permanente pendente. Timeout resulta em `rollback_failed`, com escalonamento para intervenção; o pipeline retorna erro sem repetir a reversão. Falha no próprio comando é enviada por `deployment.rollback_failed`. Atualize o receptor Sentinela antes de habilitar este publisher.

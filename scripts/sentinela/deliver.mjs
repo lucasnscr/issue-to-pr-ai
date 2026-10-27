@@ -22,8 +22,10 @@ export async function deliver({env=process.env,api=githubApi,request=fetch,deplo
     return await waitForVerification({...context},{env,request,...verifyOptions});
   }catch{
     try{await rollback(context);await run('deployment.rolled_back');}
-    catch{await run('deployment.failed');throw new Error('Entrega falhou e rollback não foi confirmado. Confira o ambiente.');}
-    throw new Error('Entrega sem recuperação confirmada; pipeline executou rollback.');
+    catch{await run('deployment.rollback_failed');throw new Error('Entrega falhou e rollback não foi confirmado. Confira o ambiente.');}
+    try{await waitForVerification({...context},{env,request,...verifyOptions,goal:'rollback'});}
+    catch{throw new Error('Saúde após rollback não confirmada; escale para intervenção humana.');}
+    throw new Error('Entrega sem recuperação confirmada; saúde recuperada após rollback verificado.');
   }
 }
 export function kubernetes(env,execute=args=>execFileSync('kubectl',args,{encoding:'utf8',timeout:180000,maxBuffer:1_000_000,stdio:['ignore','pipe','pipe']})){

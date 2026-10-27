@@ -16,7 +16,7 @@ test('notificador recusa CI malsucedida e SHA obsoleto sem enviar o callback',as
 test('entrega exige merge humano antes de qualquer mutação e faz rollback quando a verificação falha',async()=>{
  const {deliver}=await import('../sentinela/deliver.mjs');let deploys=0,rollbacks=0;const types=[];
  const deploy=async()=>{deploys++;},rollback=async()=>{rollbacks++;};
- const request=async(url,options)=>{if(options.method==='POST'){types.push(JSON.parse(options.body).type);return new Response('{}',{status:202});}return new Response(JSON.stringify({commitSha:sha,artifactDigest:env.SENTINELA_ARTIFACT_DIGEST,deploymentId:'d1',state:'regressed'}));};
+ const request=async(url,options)=>{if(options.method==='POST'){types.push(JSON.parse(options.body).type);return new Response('{}',{status:202});}return new Response(JSON.stringify({caseId,repository:repo,issueNumber:1,pullRequestNumber:2,commitSha:sha,artifactDigest:env.SENTINELA_ARTIFACT_DIGEST,deploymentId:'d1',state:types.includes('deployment.rolled_back')?'rolled_back':'regressed'}));};
  await assert.rejects(deliver({env,api:fixture(false),request,deploy,rollback}),/merge/);assert.equal(deploys,0);
  await assert.rejects(deliver({env,api:fixture(true),request,deploy,rollback,verifyOptions:{timeoutMs:100,pollMs:1}}),/rollback/);assert.equal(deploys,1);assert.equal(rollbacks,1);assert.deepEqual(types,['implementation.published','deployment.started','deployment.completed','deployment.rolled_back']);
 });
@@ -42,4 +42,14 @@ test('entrega reconcilia callback perdido antes do deploy e preserva os SHAs dis
  };
  await deliver({env,api,request,deploy:async()=>{assert.equal(types[0].type,'implementation.published');assert.equal(types[0].commitSha,head);},rollback:async()=>assert.fail('rollback inesperado')});
  assert.deepEqual(types.map(item=>item.type),['implementation.published','deployment.started','deployment.completed']);assert.equal(types[1].commitSha,sha);
+});
+
+test('pipeline aguarda saúde após rollback e escala falha sem repetir a mutação',async()=>{
+ const {deliver}=await import('../sentinela/deliver.mjs');let rollbackCalls=0;const events=[];
+ const request=async(url,options)=>{
+  if(options.method==='POST'){events.push(JSON.parse(options.body).type);return new Response('{}',{status:202});}
+  return new Response(JSON.stringify({caseId,repository:repo,issueNumber:1,pullRequestNumber:2,commitSha:sha,artifactDigest:env.SENTINELA_ARTIFACT_DIGEST,deploymentId:'d1',state:events.includes('deployment.rolled_back')?'rollback_failed':'regressed'}));
+ };
+ await assert.rejects(deliver({env,api:fixture(true),request,deploy:async()=>{},rollback:async()=>{rollbackCalls++;},verifyOptions:{timeoutMs:100,pollMs:1}}),/escale/);
+ assert.equal(rollbackCalls,1);assert.equal(events.at(-1),'deployment.rolled_back');
 });
