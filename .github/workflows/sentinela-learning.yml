@@ -1,0 +1,99 @@
+name: Sentinela reviewed learning
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+concurrency:
+  group: sentinela-learning-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: vars.SENTINELA_LEARNING_ENABLED == 'true' && contains(github.event.issue.body, '<!-- sentinela-learning/v1 ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      base_sha: ${{ steps.base.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Fetch the current reviewed export using trusted control code
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LEARNING_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          LEARNING_EXPORT_FILE: ${{ runner.temp }}/learning.json
+          SENTINELA_URL: ${{ vars.SENTINELA_URL }}
+          SENTINELA_CALLBACK_TOKEN: ${{ secrets.SENTINELA_CALLBACK_TOKEN }}
+        run: node scripts/sentinela/learning-issue.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: approved-learning-${{ github.run_id }}
+          path: ${{ runner.temp }}/learning.json
+          retention-days: 7
+  validate:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: approved-learning-${{ github.run_id }}
+          path: ${{ runner.temp }}/approved-learning
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Generate from bounded data without callback credentials
+        run: node scripts/sentinela/learning.mjs generate "$RUNNER_TEMP/approved-learning/learning.json" "$GITHUB_REPOSITORY"
+      - run: ./mvnw -B -ntp verify
+  publish:
+    needs: [prepare, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.base_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: approved-learning-${{ github.run_id }}
+          path: ${{ runner.temp }}/approved-learning
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Publish deterministic files as a draft PR without running candidate tests
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LEARNING_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          LEARNING_EXPORT_FILE: ${{ runner.temp }}/approved-learning/learning.json
+        run: |
+          node scripts/install-git-hooks.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          node scripts/sentinela/publish-learning.mjs
