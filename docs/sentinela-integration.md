@@ -61,3 +61,7 @@ Azure Functions já possui observação e ajustes no Sentinela; o adaptador de e
 ## Fase 1: confirmar a recuperação após rollback
 
 O recibo `deployment.rolled_back` confirma a execução e inicia `rollback_verifying`. O pipeline aguarda três novas observações saudáveis posteriores à reversão, com ambiente e identidade conferidos. `rolled_back` significa saúde recuperada, mantendo a correção permanente pendente. Timeout resulta em `rollback_failed`, com escalonamento para intervenção; o pipeline retorna erro sem repetir a reversão. Falha no próprio comando é enviada por `deployment.rollback_failed`. Atualize o receptor Sentinela antes de habilitar este publisher.
+
+## Fase 2: tentativa atual e início novo
+
+O Sentinela permite tentativas sucessivas revisadas para o mesmo incidente, com novas issues/PRs e limite por política. O publisher exige que o recibo de início indique o caso correto, estado deploying, tentativa atual e evento não repetido antes de qualquer mutação. Reenvios e tentativas substituídas exigem conferência, preservando o histórico e impedindo outro deploy. Atualize o receptor antes do publisher.
