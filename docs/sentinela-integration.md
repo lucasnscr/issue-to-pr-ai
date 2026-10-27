@@ -65,3 +65,9 @@ O recibo `deployment.rolled_back` confirma a execução e inicia `rollback_verif
 ## Fase 2: tentativa atual e início novo
 
 O Sentinela permite tentativas sucessivas revisadas para o mesmo incidente, com novas issues/PRs e limite por política. O publisher exige que o recibo de início indique o caso correto, estado deploying, tentativa atual e evento não repetido antes de qualquer mutação. Reenvios e tentativas substituídas exigem conferência, preservando o histórico e impedindo outro deploy. Atualize o receptor antes do publisher.
+
+## Resultados sem entrega
+
+O workflow de sincronização usa a branch padrão confiável para acompanhar CI bem-sucedida/reprovada/cancelada, implementação autorizada interrompida e PR fechada sem merge. Não faz checkout do candidato nem lê artefatos com o segredo de callback. `pull_request_target` é usado apenas para ler metadados atuais de encerramento; forks e SHAs antigos são recusados. O implementador não recebe esse segredo.
+
+CI nova pode recuperar a mesma PR; eventos antigos não substituem o resultado mais recente. PR encerrada sem merge cancela a tentativa. Casos sem atividade são escalados pelo Sentinela e exigem decisão do mantenedor; entregas sem recibo ficam incertas até conferência do provedor. Isso não autoriza outro deploy nem repete rollback. Todos os recursos continuam desabilitados por padrão.

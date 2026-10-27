@@ -1,4 +1,5 @@
 name: AI implementation
+run-name: 'AI implementation • issue #${{ github.event.issue.number }}'
 on:
   issue_comment:
     types: [created]

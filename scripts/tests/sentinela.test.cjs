@@ -8,11 +8,11 @@ function fixture(merged=false){const pr={number:2,state:merged?'closed':'open',m
 test('contrato rejeita versão, marcadores ambíguos e artefato mutável',async()=>{
  const {extractCase,caseMarker,validateEvent}=await import('../../contracts/sdlc-v1.mjs');const marker=caseMarker(caseId,hash);assert.equal(extractCase(marker).caseId,caseId);assert.throws(()=>extractCase(marker+marker),/Ambiguous/);assert.throws(()=>validateEvent({protocol:'unsupported'}));
 });
-test('notificador recusa CI malsucedida e SHA obsoleto sem enviar o callback',async()=>{
+test('notificador sincroniza CI malsucedida e bem-sucedida',async()=>{
  const {notifyImplementation}=await import('../sentinela/notify-pr.mjs');let calls=0;const request=async()=>{calls++;return ack();};
- const event={workflow_run:{conclusion:'failure',repository:{full_name:repo},head_repository:{full_name:repo},head_sha:sha}};
- await assert.rejects(notifyImplementation({env,api:fixture(),request,event}),/CI/);assert.equal(calls,0);
- event.workflow_run.conclusion='success';await notifyImplementation({env,api:fixture(),request,event});assert.equal(calls,1);
+ const event={workflow_run:{id:1,run_attempt:1,name:'CI',conclusion:'failure',repository:{full_name:repo},head_repository:{full_name:repo},head_sha:sha}};
+ await notifyImplementation({env,api:fixture(),request,event});assert.equal(calls,1);
+ event.workflow_run.conclusion='success';await notifyImplementation({env,api:fixture(),request,event});assert.equal(calls,2);
 });
 test('entrega exige merge humano antes de qualquer mutação e faz rollback quando a verificação falha',async()=>{
  const {deliver}=await import('../sentinela/deliver.mjs');let deploys=0,rollbacks=0;const types=[];
