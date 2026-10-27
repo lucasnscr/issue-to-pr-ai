@@ -53,3 +53,12 @@ test('pipeline aguarda saúde após rollback e escala falha sem repetir a mutaç
  await assert.rejects(deliver({env,api:fixture(true),request,deploy:async()=>{},rollback:async()=>{rollbackCalls++;},verifyOptions:{timeoutMs:100,pollMs:1}}),/escale/);
  assert.equal(rollbackCalls,1);assert.equal(events.at(-1),'deployment.rolled_back');
 });
+test('falha do comando de rollback é comunicada e não é repetida',async()=>{
+ const {deliver}=await import('../sentinela/deliver.mjs');const events=[];let calls=0;
+ const request=async(url,options)=>{
+  if(options.method==='POST'){events.push(JSON.parse(options.body).type);return new Response('{}',{status:202});}
+  return new Response(JSON.stringify({caseId,repository:repo,issueNumber:1,pullRequestNumber:2,commitSha:sha,artifactDigest:env.SENTINELA_ARTIFACT_DIGEST,deploymentId:'d1',state:'regressed'}));
+ };
+ await assert.rejects(deliver({env,api:fixture(true),request,deploy:async()=>{},rollback:async()=>{calls++;throw new Error('Provider uncertain');}}),/rollback não foi confirmado/);
+ assert.equal(calls,1);assert.equal(events.at(-1),'deployment.rollback_failed');
+});
