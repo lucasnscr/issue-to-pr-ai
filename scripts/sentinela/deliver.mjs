@@ -16,7 +16,8 @@ export async function deliver({env=process.env,api=githubApi,request=fetch,deplo
   // Use the PR head here; the deployment separately identifies the integrated SHA.
   await sendEvent({...context,type:'implementation.published',commitSha:pr.head.sha,
     id:eventId('implementation.published',marker.caseId,pr.head.sha),at:new Date().toISOString()},{env,request});
-  await run('deployment.started');
+  const start=await run('deployment.started');
+  if(start.caseId!==context.caseId||start.state!=='deploying'||start.replayed!==false||start.currentAttempt!==true)throw new Error('Início não é novo nem pertence à tentativa atual; confira o deploy antes de executar.');
   try{
     await deploy(context);await run('deployment.completed');
     return await waitForVerification({...context},{env,request,...verifyOptions});
