@@ -49,7 +49,7 @@ jobs:
     needs: package
     runs-on: ubuntu-latest
     environment: sentinela-delivery
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -67,6 +67,7 @@ jobs:
           KUBE_CONFIG_B64: ${{ secrets.SENTINELA_KUBE_CONFIG_B64 }}
           SENTINELA_DELIVERY_ENABLED: 'true'
           SENTINELA_PR_NUMBER: ${{ inputs.pull_request }}
+          SENTINELA_VERIFY_TIMEOUT_MS: ${{ vars.SENTINELA_VERIFY_TIMEOUT_MS || '660000' }}
           SENTINELA_URL: ${{ vars.SENTINELA_URL }}
           SENTINELA_SERVICE: ${{ vars.SENTINELA_SERVICE }}
           SENTINELA_ENVIRONMENT: ${{ vars.SENTINELA_ENVIRONMENT }}

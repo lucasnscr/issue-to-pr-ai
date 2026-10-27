@@ -3,9 +3,10 @@ import {pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {extractCase,eventId} from '../../contracts/sdlc-v1.mjs';
 import {changeContext,githubApi} from './github.mjs';
-import {sendEvent,waitForVerification} from './client.mjs';
+import {sendEvent,waitForVerification,verificationTimeout} from './client.mjs';
 export async function deliver({env=process.env,api=githubApi,request=fetch,deploy,rollback,verifyOptions={}}={}){
   if(env.SENTINELA_DELIVERY_ENABLED!=='true')throw new Error('Entrega Sentinela não habilitada.');
+  verificationTimeout(env);
   const repo=env.GITHUB_REPOSITORY,sha=env.GITHUB_SHA;
   const {pr,issue}=await changeContext({repo,prNumber:Number(env.SENTINELA_PR_NUMBER),commitSha:sha,requireMerged:true},api);
   const marker=extractCase(issue.body);if(!marker)throw new Error('Issue não está vinculada a um caso Sentinela.');
