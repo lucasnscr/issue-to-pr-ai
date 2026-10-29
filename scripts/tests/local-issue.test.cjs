@@ -16,4 +16,9 @@ test('profile selection is bounded and cannot supply arbitrary commands or write
   assert.equal(profile.allowed('apps/catalog-api/README.md'),true);
   assert.equal(profile.regression('apps/catalog-api/src/test/java/a/CacheIT.java'),true);
   assert.throws(()=>implementationProfile('$(command)'));assert.match(implementationPrompt(),/do not run commands/);
+  const sentinela=implementationProfile('sentinela-typescript');
+  assert.ok(sentinela.allowed('lib/ai/configuration.ts'));
+  for(const file of ['lib/db.ts','.env.local','package.json','.github/workflows/ci.yml','contracts/sdlc-v1.mjs'])assert.equal(sentinela.allowed(file),false);
+  assert.ok(sentinela.regression('tests/ai-configuration.test.ts'));
+  assert.equal(sentinela.allowed('apps/catalog-api/src/main/java/a/Main.java'),false);
 });

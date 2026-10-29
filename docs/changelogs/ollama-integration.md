@@ -33,4 +33,15 @@ Execute a documentação com `node scripts/serve-product-docs.mjs` e abra http:/
 
 Conclusão do piloto: PR #78 gerada pelo Qwen após retomada explícita da PR #77 revisada. A retomada final usou 10 etapas e 79.906 unidades de tokens. Maven/PostgreSQL, smoke, categorias, preço, ordenação e no-store independente passaram. Diff revisado: cabeçalho, teste IT, descrição OpenAPI e README presentes; sem edição de código da aplicação por outro modelo. Uma retomada intermediária falhou no escopo e não publicou. Duas tentativas de implementação do zero falharam na compilação (UUID e CacheControl), sem publicação. Os testes mostraram que inferência concluída não implica código correto; o aceite depende da validação e da revisão.
 
-As PRs da fase ainda precisam concluir seus checks de CI antes da integração. A VM de laboratório permanece dedicada e será tratada separadamente da validação do runner descartável.
+As PRs #78 e #79 concluíram CI e foram integradas à main; a combinação final passou novamente em scripts e Maven/PostgreSQL. A VM de laboratório permanece dedicada e será tratada separadamente da validação do runner descartável.
+
+## Fase 4 — validada localmente em 29/10/2026
+
+- Perfil sentinela-typescript e validador Node24/PostgreSQL/pgvector/check/build/E2E, preservando o perfil Java.
+- Relatórios fora do checkout, sem depender de gitignore do repositório chamador. Patch deve permanecer idêntico após os testes para ser publicado.
+- Regressão do engine: 205 testes de scripts, make check e Maven/PostgreSQL aprovados.
+- Primeiro piloto TypeScript compilou e passou nos testes unitários, mas detectou fixture SDLC antiga dependente de 1 ms. A base foi corrigida em PR própria do Sentinela, sem alterar produção ou editar o patch de aplicação gerado pelo Qwen. Nova execução do piloto pendente.
+
+Conclusão local: entrypoint do Sentinela invocou o engine imutável 42f4df9; o Qwen implementou #16 e abriu PR #18, com 10 etapas e 101.726 unidades de tokens. Check/unidade/40 integrações/build/E2E providers-operações passaram na VM e o patch permaneceu idêntico após testes. Critério independente de timeout: 18 verificações, vermelho na base anterior e verde no código Qwen. A revisão desta execução corrigiu somente a formatação da tabela Markdown; código e teste do piloto permaneceram gerados pelo Qwen.
+
+Teste conjunto SDLC também aprovado localmente contra as versões atuais dos dois repositórios; GitHub e agente desse teste são controlados. Isso é evidência distinta dos pilotos com inferência real. Infraestrutura Sentinela #17 integrada após CI conjunta; PR de aplicação #18 e engine #81 aguardam seus checks finais para merge. A documentação interativa ganhou receitas por projeto e cenários de falha, validados em DOM emulado.

@@ -1,5 +1,6 @@
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { dirname } from 'node:path';
 import { runGovernedOpenCode } from './run-governed-opencode.mjs';
 import { implementationProvider } from './model-provider.mjs';
 import { loadPolicy } from './ai-policy.mjs';
@@ -48,10 +49,12 @@ export async function runOpenCodeImplementation({ env = process.env } = {}) {
     'run', env.IMPLEMENTATION_PROFILE ? implementationPrompt(env.IMPLEMENTATION_PROFILE) : implementationInstructions,
     '--model', env.MODEL, '--agent', 'live-implementer', '--format', 'json',
     '--file', env.TASK_FILE,
-  ], { profile: 'implementation', model: env.MODEL, env: provider.env });
+  ], { profile: 'implementation', model: env.MODEL, env: provider.env,
+    usageFile: env.AI_USAGE_FILE || 'artifacts/ai-usage.json' });
   const summary = interpretLiveResult(result, provider.apiKey);
-  mkdirSync('artifacts', { recursive: true });
-  writeFileSync('artifacts/implementation-summary.md', summary + '\n');
+  const summaryFile = env.AI_SUMMARY_FILE || 'artifacts/implementation-summary.md';
+  mkdirSync(dirname(summaryFile), { recursive: true });
+  writeFileSync(summaryFile, summary + '\n');
   console.log('Real model execution completed. Changes will be validated before publication.');
   return { summary, usage: result.usage };
 }
