@@ -1,5 +1,5 @@
 export async function discardRunner({vm,repo,runId,listVms,deleteVm,listRunners,deleteRunner,cancelRun,record,
-  attempts=24,delay=()=>new Promise(resolve=>setTimeout(resolve,5000))}){
+  attempts=73,delay=()=>new Promise(resolve=>setTimeout(resolve,5000))}){
   if(!/^sentinela-ai-job-[a-f0-9]{8}$/.test(vm))throw Error('Refusing to discard an unrelated VM.');
   // Local data must be erased even if GitHub is unavailable or still marks
   // a disconnected runner busy. Do not put a remote call before this boundary.
