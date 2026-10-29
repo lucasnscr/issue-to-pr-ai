@@ -12,6 +12,7 @@ test('local delivery requires an open issue with explicit authorization and stab
 test('profile selection is bounded and cannot supply arbitrary commands or write configuration',async()=>{
   const {implementationProfile,implementationPrompt}=await import('../implementation-profiles.mjs');
   const profile=implementationProfile('catalog-java');assert.equal(profile.allowed('.github/workflows/ci.yml'),false);
+  assert.equal(profile.allowed('apps/catalog-api/README.md'),true);
   assert.equal(profile.regression('apps/catalog-api/src/test/java/a/CacheIT.java'),true);
   assert.throws(()=>implementationProfile('$(command)'));assert.match(implementationPrompt(),/do not run commands/);
 });

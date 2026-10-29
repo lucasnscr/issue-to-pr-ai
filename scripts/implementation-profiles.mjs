@@ -2,7 +2,8 @@ const profiles = {
   'catalog-java': {
     application: file => /^apps\/catalog-api\/src\/main\/java\/.+\.java$/.test(file),
     regression: file => /^apps\/catalog-api\/src\/test\/java\/.+IT\.java$/.test(file),
-    allowed: file => /^apps\/catalog-api\/src\/(main|test)\//.test(file) || file === 'README.md' || /^docs\/.+\.md$/.test(file),
+    allowed: file => /^apps\/catalog-api\/src\/(main|test)\//.test(file) ||
+      ['README.md', 'apps/catalog-api/README.md'].includes(file) || /^docs\/.+\.md$/.test(file),
     instructions: 'Change only apps/catalog-api/src and Markdown documentation. Preserve BigDecimal, Flyway and API behavior. Add meaningful real PostgreSQL integration tests and update OpenAPI/README when behavior changes.',
     validation: ['./mvnw', '-B', '-ntp', 'verify'],
   },

@@ -28,6 +28,10 @@ const issue = () => JSON.parse(gh('issue', 'view', String(issueNumber), '--repo'
 let container, locked = false;
 try {
   verifyVm(JSON.parse(execute('limactl', ['list', vm, '--json'])), vm);
+  if (execute('git', ['status', '--porcelain', '--', 'scripts', 'config', 'infra/agents', 'opencode.json'], root).trim()) {
+    throw new Error('Commit the trusted executor before running an issue.');
+  }
+  const engineSha = execute('git', ['rev-parse', 'HEAD'], root).trim();
   guest('mkdir', '/tmp/sentinela-ai-executor-lock');
   locked = true;
   const actor = api('user').login;
@@ -39,7 +43,8 @@ try {
   if (!/^[a-f0-9]{40}$/.test(base)) throw new Error('Invalid base SHA.');
   const task = join(temporary, 'task.md');
   writeFileSync(task, `Repository: ${repo}\nIssue: #${issueNumber}\n<untrusted_issue>\n${initial.title}\n${initial.body}\n</untrusted_issue>\n`);
-  execute('tar', ['-czf', join(temporary, 'engine.tgz'), 'scripts', 'config', 'infra/agents', 'opencode.json', 'AGENTS.md'], root);
+  execute('git', ['archive', '--format=tar.gz', '--output=' + join(temporary, 'engine.tgz'), engineSha,
+    'scripts', 'config', 'infra/agents', 'opencode.json', 'AGENTS.md'], root);
   guest('mkdir', '-p', remote + '/engine');
   copy(join(temporary, 'engine.tgz'), vm + ':' + remote + '/engine.tgz');
   copy(task, vm + ':' + remote + '/task.md');
@@ -104,7 +109,7 @@ try {
   writeFileSync(body, `Closes #${issueNumber}\n\nImplementado por Qwen local com OpenCode 1.19.3. Perfil: ${profile}. Base: ${base}.\n\nValidação independente em VM sem home compartilhado: escopo, regressão da aplicação e uso completo. ${usage.usage.steps} etapas; ${usage.usage.policyTokenUnits} unidades de tokens.\n\nPublicação fora do processo do modelo. PR draft; revisão e merge permanecem separados. Execução local: ${runId}.\n`);
   const pr = gh('pr', 'create', '--repo', repo, '--draft', '--base', branch, '--head', deliveryBranch,
     '--title', 'Implementa issue #' + issueNumber + ' com Qwen local', '--body-file', body).trim();
-  const report = { version: 1, result: 'passed', repo, issue: issueNumber, profile, base, actor, runId, pr,
+  const report = { version: 1, result: 'passed', repo, issue: issueNumber, profile, base, engineSha, actor, runId, pr,
     model: usage.model, usage: usage.usage, validation: 'Independent application regression in dedicated Lima VM',
     recordedAt: new Date().toISOString() };
   mkdirSync(join(root, 'artifacts'), { recursive: true });
