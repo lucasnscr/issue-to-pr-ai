@@ -25,7 +25,7 @@ const api = path => JSON.parse(gh('api', path));
 const guest = (...args) => execute('limactl', ['shell', vm, '--', ...args], undefined, 1200000);
 const copy = (from, to) => execute('limactl', ['copy', from, to]);
 const issue = () => JSON.parse(gh('issue', 'view', String(issueNumber), '--repo', repo, '--json', 'number,title,body,state,labels'));
-let container, locked = false;
+let container, locked = false, stage = 'authorization';
 try {
   verifyVm(JSON.parse(execute('limactl', ['list', vm, '--json'])), vm);
   if (execute('git', ['status', '--porcelain', '--', 'scripts', 'config', 'infra/agents', 'opencode.json'], root).trim()) {
@@ -69,6 +69,7 @@ try {
   container = 'sentinela-agent-' + runId;
   const uid = guest('id', '-u').trim(), gid = guest('id', '-g').trim();
   console.log('Authorized ' + repo + '#' + issueNumber + '; running isolated Qwen with profile ' + profile + '.');
+  stage = 'model';
   guest('docker', 'run', '--rm', '--name', container, '--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges',
     '--user', uid + ':' + gid, '--pids-limit=128', '--memory=2g', '--cpus=2', '--network=host',
     '--tmpfs', '/tmp:rw,exec,size=1g,mode=1777', '-v', remote + '/workspace:/workspace:rw',
@@ -76,10 +77,13 @@ try {
     '-v', remote + '/opencode.json:/control/opencode.json:ro', '-e', 'OPENCODE_CONFIG=/control/opencode.json',
     '-e', 'MODEL=ollama/qwen3-coder:30b', '-e', 'IMPLEMENTATION_PROFILE=' + profile,
     '-e', 'TASK_FILE=/task.md', '--entrypoint', 'node', 'issue-to-pr-opencode:1.19.3', '/engine/scripts/run-implementation.mjs');
+  stage = 'scope';
   guest('sh', '-c', 'cd "$1" && EXPECTED_SHA="$2" IMPLEMENTATION_PROFILE="$3" node "$4/scripts/validate-agent-changes.mjs"',
     'sh', remote + '/workspace', base, profile, remote + '/engine');
   console.log('Patch scope passed; running independent application regression in the dedicated VM.');
+  stage = 'regression';
   guest('sh', '-c', 'cd "$1" && ./mvnw -B -ntp verify > "$2/validation.log" 2>&1', 'sh', remote + '/workspace', remote);
+  stage = 'http-acceptance';
   guest('sh', '-c', 'cd "$1" && docker compose -p "$3" up --build --wait > "$2/http.log" 2>&1 && node "$4/scripts/smoke.mjs" && node "$4/scripts/category-acceptance.mjs" && node "$4/scripts/price-acceptance.mjs" && node "$4/scripts/ordering-acceptance.mjs"',
     'sh', remote + '/workspace', remote, 'ai-' + runId, remote + '/engine');
   if (options.acceptance) guest('node', '-e', 'fetch("http://127.0.0.1:8080/api/products/categories").then(r=>{if(!r.ok||!r.headers.get("cache-control")?.includes("no-store"))throw Error("Independent no-store acceptance failed");return r.json()}).then(x=>{if(!Array.isArray(x))throw Error("Categories contract changed")})');
@@ -90,6 +94,7 @@ try {
   if (usage.outcome !== 'completed' || usage.policy?.decision !== 'allow' || !usage.usage?.complete) throw new Error('Usage does not authorize publication.');
   if (issueSnapshot(issue()) !== snapshot || api(`repos/${repo}/commits/${encodeURIComponent(branch)}`).sha !== base) throw new Error('Issue or base changed; do not publish.');
   if (!['admin', 'maintain', 'write'].includes(api(`repos/${repo}/collaborators/${actor}/permission`).permission)) throw new Error('Write access revoked.');
+  stage = 'publication';
   const publisher = join(temporary, 'publisher');
   execute('git', ['clone', '--quiet', '--branch', branch, 'https://github.com/' + repo + '.git', publisher]);
   if (execute('git', ['rev-parse', 'HEAD'], publisher).trim() !== base) throw new Error('Publisher base moved.');
@@ -120,7 +125,10 @@ try {
     mkdirSync(join(root, 'artifacts'), { recursive: true });
     copy(vm + ':' + remote + '/validation.log', join(root, 'artifacts/local-issue-' + issueNumber + '-validation.log'));
   } catch {}
-  console.error('Local delivery failed: ' + (error.status ? 'bounded subprocess exited ' + error.status : error.message));
+  for (const [from, name] of [['workspace/artifacts/ai-usage.json', 'failed-usage.json'], ['http.log', 'http.log']]) {
+    try { copy(vm + ':' + remote + '/' + from, join(root, 'artifacts/local-issue-' + issueNumber + '-' + name)); } catch {}
+  }
+  console.error('Local delivery failed at ' + stage + ': ' + (error.status ? 'bounded subprocess exited ' + error.status : error.message));
   // Keep sanitized diagnostics only. The workspace is always removed; reruns
   // start from a fresh base rather than executing unreviewed leftovers.
   process.exitCode = 1;
