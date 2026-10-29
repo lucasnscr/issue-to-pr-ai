@@ -92,6 +92,7 @@ class ProductCategoriesIT {
         ResponseEntity<String[]> response = http.getForEntity("/api/products/categories", String[].class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getFirst("Cache-Control")).isEqualTo("no-store");
+        assertThat(response.getHeaders().getFirst("X-Content-Type-Options")).isEqualTo("nosniff");
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
         assertThat(response.getBody()).isEmpty();
     }

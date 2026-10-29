@@ -73,10 +73,11 @@ public class ProductController {
     @GetMapping("/categories")
     @Operation(summary = "List all categories present in the catalog, without duplicates, in ascending alphabetical order",
             description = "Returns an unpaginated array of normalized category names. An empty catalog returns an empty array. " +
-                    "Cache-Control: no-store header is set to prevent caching.")
+                    "Cache-Control: no-store header and X-Content-Type-Options: nosniff are set to prevent caching and enforce security.")
     public ResponseEntity<List<String>> categories() {
         return ResponseEntity.ok()
                 .header("Cache-Control", "no-store")
+                .header("X-Content-Type-Options", "nosniff")
                 .body(service.listCategories());
     }
 

@@ -30,7 +30,7 @@ Para executar apenas a JVM, suba `docker compose up -d postgres` e use
 |---|---|---|
 | POST | `/api/products` | Cria produto; `201` e `Location` |
 | GET | `/api/products?page=0&size=20` | Lista paginada, ordenada por criação e ID |
-| GET | `/api/products/categories` | Todas as categorias com produtos, sem duplicatas e em ordem alfabética; catálogo vazio retorna `[]`; cabeçalho `Cache-Control: no-store` está presente |
+| GET | `/api/products/categories` | Todas as categorias com produtos, sem duplicatas e em ordem alfabética; catálogo vazio retorna `[]`; cabeçalhos `Cache-Control: no-store` e `X-Content-Type-Options: nosniff` estão presentes |
 | GET | `/api/products?category=books` | Lista filtrada por categoria (opcional, case-insensitive) |
 | GET | `/api/products?minPrice=10.00&maxPrice=99.99` | Lista filtrada por faixa de preço (limites inclusivos, combinável com `category`) |
 | GET | `/api/products?sort=price,asc` | Lista ordenada por preço crescente (desempate por ID) |
