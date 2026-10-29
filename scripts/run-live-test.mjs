@@ -1,6 +1,8 @@
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { runGovernedOpenCode } from './run-governed-opencode.mjs';
+import { implementationProvider } from './model-provider.mjs';
+import { loadPolicy } from './ai-policy.mjs';
 
 const timeoutMs = 10 * 60 * 1000;
 
@@ -39,14 +41,14 @@ export async function runOpenCodeImplementation({ env = process.env } = {}) {
   if (!env.MODEL || !env.TASK_FILE) {
     throw new Error('MODEL and TASK_FILE are required for the real test.');
   }
-  const credential = env.MODEL.startsWith('vllm/') ? 'VLLM_API_KEY' : 'ANTHROPIC_API_KEY';
-  if (!env[credential]) throw new Error(`${credential} is required for the configured provider.`);
+  loadPolicy('implementation', env.MODEL);
+  const provider = implementationProvider(env);
   const result = await runGovernedOpenCode([
     'run', implementationInstructions,
     '--model', env.MODEL, '--agent', 'live-implementer', '--format', 'json',
     '--file', env.TASK_FILE,
-  ], { profile: 'implementation', model: env.MODEL, env });
-  const summary = interpretLiveResult(result, env[credential]);
+  ], { profile: 'implementation', model: env.MODEL, env: provider.env });
+  const summary = interpretLiveResult(result, provider.apiKey);
   mkdirSync('artifacts', { recursive: true });
   writeFileSync('artifacts/implementation-summary.md', summary + '\n');
   console.log('Real model execution completed. Changes will be validated before publication.');

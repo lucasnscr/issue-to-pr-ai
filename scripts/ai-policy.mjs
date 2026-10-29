@@ -6,7 +6,9 @@ export function validatePolicy(policy) {
   }
   for (const profile of Object.values(policy.profiles)) {
     if (!Array.isArray(profile?.allowedModels) || profile.allowedModels.length === 0 ||
-      profile.allowedModels.some(model => typeof model !== 'string' || !/^[a-z0-9-]+\/[a-zA-Z0-9._/-]+$/.test(model))) {
+      profile.allowedModels.some(model => typeof model !== 'string' ||
+        !/^[a-z0-9-]+\/[a-zA-Z0-9][a-zA-Z0-9._/-]*(?::[a-zA-Z0-9][a-zA-Z0-9._-]*)?$/.test(model) ||
+        model.split('/').some(part => part === '..'))) {
       throw new Error('AI policy requires an explicit provider/model allowlist.');
     }
     for (const key of ['maxSteps', 'timeoutSeconds', 'maxPolicyTokenUnits', 'maxOutputBytes']) {

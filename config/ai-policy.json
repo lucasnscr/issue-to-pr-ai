@@ -2,7 +2,10 @@
   "version": 1,
   "profiles": {
     "specification": {
-      "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
+      "allowedModels": [
+        "anthropic/claude-sonnet-4-6",
+        "vllm/qwen-coder"
+      ],
       "maxSteps": 1,
       "timeoutSeconds": 540,
       "maxEstimatedCostUsd": 1,
@@ -11,7 +14,11 @@
       "requireUsage": true
     },
     "implementation": {
-      "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
+      "allowedModels": [
+        "anthropic/claude-sonnet-4-6",
+        "vllm/qwen-coder",
+        "ollama/qwen3-coder:30b"
+      ],
       "maxSteps": 35,
       "timeoutSeconds": 900,
       "maxEstimatedCostUsd": 5,
@@ -20,7 +27,10 @@
       "requireUsage": true
     },
     "correction": {
-      "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
+      "allowedModels": [
+        "anthropic/claude-sonnet-4-6",
+        "vllm/qwen-coder"
+      ],
       "maxSteps": 20,
       "timeoutSeconds": 600,
       "maxEstimatedCostUsd": 3,
@@ -29,7 +39,10 @@
       "requireUsage": true
     },
     "review": {
-      "allowedModels": ["anthropic/claude-sonnet-4-6", "vllm/qwen-coder"],
+      "allowedModels": [
+        "anthropic/claude-sonnet-4-6",
+        "vllm/qwen-coder"
+      ],
       "maxSteps": 1,
       "timeoutSeconds": 540,
       "maxEstimatedCostUsd": 1,
