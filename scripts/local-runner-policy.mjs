@@ -15,3 +15,13 @@ export function queuedModelJob(repo,run,jobs,defaultBranch){
   return jobs.find(job=>job.status==='queued'&&job.name==='implementation / Model patch'&&
     job.labels?.includes('ollama-local')&&job.labels.includes('run-'+run.id))||null;
 }
+export function queuedCloudPublication(repo,run,jobs,defaultBranch){
+  targetProfile(repo);
+  if(run.path!=='.github/workflows/claude-implementation.yml'||run.head_repository?.full_name!==repo||
+    run.head_branch!==defaultBranch||!['issue_comment','workflow_dispatch'].includes(run.event)||
+    !Number.isSafeInteger(run.id)||run.id<1)return null;
+  if(!jobs.some(job=>job.name==='implementation / authorize'&&job.conclusion==='success'))return null;
+  const generation=jobs.find(job=>job.name==='implementation / Model patch');
+  if(!generation||generation.conclusion&&generation.conclusion!=='success')return null;
+  return generation;
+}
