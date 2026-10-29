@@ -139,6 +139,18 @@ try {
   writeFileSync(join(root, 'artifacts/local-issue-' + issueNumber + '.json'), JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report));
 } catch (error) {
+  let reason;
+  if (stage === 'scope') {
+    const diagnostic = String(error.stderr || '');
+    reason = ['outside the task scope', 'Symlink changes', 'changed HEAD', 'requires application changes', '25-file', 'Unknown trusted'].find(value => diagnostic.includes(value)) || 'scope-validator-process';
+    try {
+      mkdirSync(join(root, 'artifacts'), { recursive: true });
+      const candidate = guest('git', '-C', remote + '/workspace', 'diff', 'HEAD', '--binary');
+      writeFileSync(join(root, 'artifacts/local-issue-' + issueNumber + '-failed.patch'), candidate);
+      const status = guest('git', '-C', remote + '/workspace', 'status', '--short');
+      writeFileSync(join(root, 'artifacts/local-issue-' + issueNumber + '-scope.txt'), diagnostic.slice(0, 4000) + '\n' + status);
+    } catch {}
+  }
   try {
     mkdirSync(join(root, 'artifacts'), { recursive: true });
     copy(vm + ':' + remote + '/validation.log', join(root, 'artifacts/local-issue-' + issueNumber + '-validation.log'));
@@ -146,7 +158,7 @@ try {
   for (const [from, name] of [['workspace/artifacts/ai-usage.json', 'failed-usage.json'], ['http.log', 'http.log']]) {
     try { copy(vm + ':' + remote + '/' + from, join(root, 'artifacts/local-issue-' + issueNumber + '-' + name)); } catch {}
   }
-  console.error('Local delivery failed at ' + stage + ': ' + (error.status ? 'bounded subprocess exited ' + error.status : error.message));
+  console.error('Local delivery failed at ' + stage + ': ' + (reason || (error.status ? 'bounded subprocess exited ' + error.status : error.message)));
   // Keep sanitized diagnostics only. The workspace is always removed; reruns
   // start from a fresh base rather than executing unreviewed leftovers.
   process.exitCode = 1;
