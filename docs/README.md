@@ -61,3 +61,6 @@ não trate arquivos de GPU/vLLM/ARC ou a alternativa Cursor como implantação v
 
 - [Documento interativo do produto](product/index.html): fases, critérios e evidências. Sirva com `node scripts/serve-product-docs.mjs`.
 - [Changelog da integração Ollama](changelogs/ollama-integration.md).
+
+- [Inferência local e limites](runbooks/local-inference.md).
+- [Entrega de issue em VM dedicada](runbooks/local-issue-delivery.md).
