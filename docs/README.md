@@ -6,6 +6,8 @@ revisão, correção limitada e decisão de entrega. Comece por uma jornada abai
 
 ## Escolha sua jornada
 
+O [documento interativo do produto](product/README.md) reúne o ciclo com Sentinela, ambientes, operação e evidências por fase. Pode ser servido localmente ou exportado como um único HTML sem dependências externas.
+
 | Quero… | Começar por | Depois consultar |
 |---|---|---|
 | Conhecer e executar o projeto | [Quickstart](quickstart.md) | [Aplicação](../apps/catalog-api/README.md), [validação](runbooks/validation.md) |

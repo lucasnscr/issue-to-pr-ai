@@ -5,6 +5,8 @@ const files = new Map([
   ['/product.css', ['../docs/product/product.css', 'text/css']],
   ['/product.js', ['../docs/product/product.js', 'text/javascript']],
   ['/phases.js', ['../docs/product/phases.js', 'text/javascript']],
+  ['/guide.js', ['../docs/product/guide.js', 'text/javascript']],
+  ['/guide-ui.js', ['../docs/product/guide-ui.js', 'text/javascript']],
   ['/changelog', ['../docs/changelogs/ollama-integration.md', 'text/plain']],
   ['/changelogs/ollama-integration.md', ['../docs/changelogs/ollama-integration.md', 'text/plain']],
 ]);
