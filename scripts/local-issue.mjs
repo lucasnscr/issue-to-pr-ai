@@ -54,7 +54,7 @@ try {
   // Read-only control files come from the trusted engine, not from the issue.
   const overlay = { $schema: 'https://opencode.ai/config.json', share: 'disabled', autoupdate: false, plugin: [], mcp: {},
     permission: { '*': 'deny', read: 'allow', glob: 'allow', grep: 'allow', edit: 'allow', external_directory: 'deny', bash: 'deny' },
-    instructions: ['/workspace/AGENTS.md'], agent: { 'live-implementer': { mode: 'primary', steps: 35, permission: { bash: 'deny' } } } };
+    instructions: ['/workspace/AGENTS.md'], agent: { 'live-implementer': { mode: 'primary', steps: 35, temperature: 0, permission: { bash: 'deny' } } } };
   writeFileSync(join(temporary, 'opencode.json'), JSON.stringify(overlay));
   copy(join(temporary, 'opencode.json'), vm + ':' + remote + '/opencode.json');
   // One local job per dedicated VM. Listener ownership is checked by the proxy
