@@ -7,6 +7,14 @@ const profiles = {
     instructions: 'Change only apps/catalog-api/src and Markdown documentation. Preserve BigDecimal, Flyway and API behavior. Add meaningful real PostgreSQL integration tests and update OpenAPI/README when behavior changes.',
     validation: ['./mvnw', '-B', '-ntp', 'verify'],
   },
+  'sentinela-typescript': {
+    application: file => /^(app|lib|worker)\/.+\.(ts|tsx|css)$/.test(file),
+    regression: file => /^tests\/.+\.test\.ts$/.test(file),
+    allowed: file => file !== 'lib/db.ts' && (/^(app|lib|worker)\/.+\.(ts|tsx|css)$/.test(file) ||
+      /^tests\/.+\.ts$/.test(file) || file === 'README.md' || /^docs\/.+\.md$/.test(file)),
+    instructions: 'Change only app, lib, worker, tests and Markdown documentation. Do not alter lib/db.ts, existing migrations, contracts, dependencies, agent settings or workflows. Read node_modules/next/dist/docs/index.md and the relevant local Next.js guide before changing code. Add a meaningful regression test. Preserve provider independence and approval gates.',
+    validation: ['npm', 'run', 'check'],
+  },
 };
 
 export function implementationProfile(name = 'catalog-java') {

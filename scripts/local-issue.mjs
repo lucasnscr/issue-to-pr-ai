@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { targetProfile, issueSnapshot, verifyVm } from './local-issue-policy.mjs';
 import { validateChanges } from './validate-agent-changes.mjs';
+import { validateVmApplication, stopVmApplication } from './vm-validation.mjs';
 
 const options = Object.fromEntries(process.argv.slice(2).map(arg => {
   const match = arg.match(/^--(repo|issue|vm|acceptance|seed-pr)=(.+)$/);
@@ -15,6 +16,7 @@ const repo = options.repo, issueNumber = Number(options.issue), vm = options.vm 
 const profile = targetProfile(repo);
 if (!/^sentinela-ai-[a-z0-9-]+$/.test(vm)) throw new Error('Invalid dedicated VM name.');
 if (options.acceptance && options.acceptance !== 'catalog-categories-no-store') throw new Error('Unknown independent acceptance profile.');
+if (options.acceptance && profile !== 'catalog-java') throw new Error('Acceptance profile does not match the application.');
 if (!Number.isSafeInteger(issueNumber) || issueNumber < 1) throw new Error('Invalid issue number.');
 const runId = randomUUID(), remote = '/tmp/sentinela-job-' + runId;
 const temporary = mkdtempSync(join(tmpdir(), 'sentinela-publisher-'));
@@ -57,18 +59,19 @@ try {
     `<untrusted_issue>\n${initial.title}\n${initial.body}\n</untrusted_issue>\n`);
   execute('git', ['archive', '--format=tar.gz', '--output=' + join(temporary, 'engine.tgz'), engineSha,
     'scripts', 'config', 'infra/agents', 'opencode.json', 'AGENTS.md'], root);
-  guest('mkdir', '-p', remote + '/engine');
+  guest('mkdir', '-p', remote + '/engine', remote + '/artifacts');
   copy(join(temporary, 'engine.tgz'), vm + ':' + remote + '/engine.tgz');
   copy(task, vm + ':' + remote + '/task.md');
   guest('tar', '-xzf', remote + '/engine.tgz', '-C', remote + '/engine');
   guest('git', 'clone', '--quiet', '--branch', branch, 'https://github.com/' + repo + '.git', remote + '/workspace');
   if (guest('git', '-C', remote + '/workspace', 'rev-parse', 'HEAD').trim() !== base) throw new Error('Base moved while cloning.');
+  if (profile === 'sentinela-typescript') guest('sh', '-c', 'cd "$1" && npm ci --ignore-scripts --no-audit --no-fund > "$2/dependencies.log" 2>&1', 'sh', remote + '/workspace', remote);
   if (seed) {
     copy(join(temporary, 'seed.patch'), vm + ':' + remote + '/seed.patch');
     guest('git', '-C', remote + '/workspace', 'apply', '--check', remote + '/seed.patch');
     guest('git', '-C', remote + '/workspace', 'apply', remote + '/seed.patch');
-    guest('sh', '-c', 'cd "$1" && EXPECTED_SHA="$2" node "$3/scripts/validate-agent-changes.mjs"',
-      'sh', remote + '/workspace', base, remote + '/engine');
+    guest('sh', '-c', 'cd "$1" && EXPECTED_SHA="$2" IMPLEMENTATION_PROFILE="$4" node "$3/scripts/validate-agent-changes.mjs"',
+      'sh', remote + '/workspace', base, remote + '/engine', profile);
   }
   // Read-only control files come from the trusted engine, not from the issue.
   const overlay = { $schema: 'https://opencode.ai/config.json', share: 'disabled', autoupdate: false, plugin: [], mcp: {},
@@ -93,6 +96,8 @@ try {
     '--user', uid + ':' + gid, '--pids-limit=128', '--memory=2g', '--cpus=2', '--network=host',
     '--tmpfs', '/tmp:rw,exec,size=1g,mode=1777', '-v', remote + '/workspace:/workspace:rw',
     '-v', remote + '/engine:/engine:ro', '-v', remote + '/task.md:/task.md:ro',
+    '-v', remote + '/artifacts:/artifacts:rw', '-e', 'AI_USAGE_FILE=/artifacts/ai-usage.json',
+    '-e', 'AI_SUMMARY_FILE=/artifacts/implementation-summary.md',
     '-v', remote + '/opencode.json:/control/opencode.json:ro', '-e', 'OPENCODE_CONFIG=/control/opencode.json',
     '-e', 'MODEL=ollama/qwen3-coder:30b', '-e', 'IMPLEMENTATION_PROFILE=' + profile,
     '-e', 'TASK_FILE=/task.md', '--entrypoint', 'node', 'issue-to-pr-opencode:1.19.3', '/engine/scripts/run-implementation.mjs');
@@ -101,14 +106,12 @@ try {
     'sh', remote + '/workspace', base, profile, remote + '/engine');
   console.log('Patch scope passed; running independent application regression in the dedicated VM.');
   stage = 'regression';
-  guest('sh', '-c', 'cd "$1" && ./mvnw -B -ntp verify > "$2/validation.log" 2>&1', 'sh', remote + '/workspace', remote);
+  validateVmApplication({ guest, profile, workspace: remote + '/workspace', remote, engine: remote + '/engine', project: 'ai-' + runId });
   stage = 'http-acceptance';
-  guest('sh', '-c', 'cd "$1" && docker compose -p "$3" up --build --wait > "$2/http.log" 2>&1 && node "$4/scripts/smoke.mjs" && node "$4/scripts/category-acceptance.mjs" && node "$4/scripts/price-acceptance.mjs" && node "$4/scripts/ordering-acceptance.mjs"',
-    'sh', remote + '/workspace', remote, 'ai-' + runId, remote + '/engine');
   if (options.acceptance) guest('node', '-e', 'fetch("http://127.0.0.1:8080/api/products/categories").then(r=>{if(!r.ok||!r.headers.get("cache-control")?.includes("no-store"))throw Error("Independent no-store acceptance failed");return r.json()}).then(x=>{if(!Array.isArray(x))throw Error("Categories contract changed")})');
   guest('sh', '-c', 'cd "$1" && git diff --cached --binary > "$2/implementation.patch"', 'sh', remote + '/workspace', remote);
   copy(vm + ':' + remote + '/implementation.patch', join(temporary, 'implementation.patch'));
-  copy(vm + ':' + remote + '/workspace/artifacts/ai-usage.json', join(temporary, 'ai-usage.json'));
+  copy(vm + ':' + remote + '/artifacts/ai-usage.json', join(temporary, 'ai-usage.json'));
   const usage = JSON.parse(readFileSync(join(temporary, 'ai-usage.json'), 'utf8'));
   if (usage.outcome !== 'completed' || usage.policy?.decision !== 'allow' || !usage.usage?.complete) throw new Error('Usage does not authorize publication.');
   if (issueSnapshot(issue()) !== snapshot || api(`repos/${repo}/commits/${encodeURIComponent(branch)}`).sha !== base) throw new Error('Issue or base changed; do not publish.');
@@ -156,7 +159,7 @@ try {
     mkdirSync(join(root, 'artifacts'), { recursive: true });
     copy(vm + ':' + remote + '/validation.log', join(root, 'artifacts/local-issue-' + issueNumber + '-validation.log'));
   } catch {}
-  for (const [from, name] of [['workspace/artifacts/ai-usage.json', 'failed-usage.json'], ['http.log', 'http.log']]) {
+  for (const [from, name] of [['artifacts/ai-usage.json', 'failed-usage.json'], ['http.log', 'http.log']]) {
     try { copy(vm + ':' + remote + '/' + from, join(root, 'artifacts/local-issue-' + issueNumber + '-' + name)); } catch {}
   }
   console.error('Local delivery failed at ' + stage + ': ' + (reason || (error.status ? 'bounded subprocess exited ' + error.status : error.message)));
@@ -165,7 +168,7 @@ try {
   process.exitCode = 1;
 } finally {
   if (container) { try { guest('docker', 'rm', '-f', container); } catch {} }
-  try { guest('sh', '-c', 'if [ -f "$1/compose.yml" ] || [ -f "$1/compose.yaml" ]; then cd "$1" && docker compose -p "$2" down -v; fi', 'sh', remote + '/workspace', 'ai-' + runId); } catch {}
+  try { stopVmApplication({ guest, profile, workspace: remote + '/workspace', project: 'ai-' + runId }); } catch {}
   try { guest('sh', '-c', 'if [ -f "$1/proxy.pid" ]; then kill "$(cat "$1/proxy.pid")" 2>/dev/null || true; fi; rm -rf -- "$1"', 'sh', remote); } catch {}
   if (locked) { try { guest('rmdir', '/tmp/sentinela-ai-executor-lock'); } catch {} }
   rmSync(temporary, { recursive: true, force: true });

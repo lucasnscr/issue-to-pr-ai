@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-export const targets = { 'lucasnscr/issue-to-pr-ai': 'catalog-java' };
+export const targets = { 'lucasnscr/issue-to-pr-ai': 'catalog-java', 'lucasnscr/sentinela': 'sentinela-typescript' };
 export function issueSnapshot(issue) {
   if (issue.state !== 'OPEN' || issue.pull_request || !issue.labels?.some(label => label.name === 'ai:ready') ||
       typeof issue.body !== 'string' || !issue.body.trim() || issue.body.length > 20000) throw new Error('An open authorized issue with bounded acceptance criteria is required.');
