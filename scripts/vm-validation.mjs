@@ -11,6 +11,7 @@ export function validateVmApplication({ guest, profile, workspace, remote, engin
     guest('sh', '-c', 'for n in $(seq 1 30); do [ "$(docker inspect -f "{{.State.Health.Status}}" "$1")" = healthy ] && exit 0; sleep 1; done; exit 1', 'sh', database);
     guest('sh', '-c', 'cd "$1" && export DATABASE_URL=postgresql://sentinela:sentinela_test_only@127.0.0.1:55432/sentinela AI_MODE=rules AI_PROVIDER=none EMBEDDING_PROVIDER=none NEXT_TELEMETRY_DISABLED=1 && { npm ci --no-audit --no-fund && npm run check && npm test && npm run db:migrate && npm run test:integration && npm run build && npm run test:e2e:provider && npm run test:e2e:operations; } > "$2/validation.log" 2>&1',
       'sh', workspace, remote);
+    guest('sh', '-c', 'cd "$1" && node --import tsx "$2/scripts/sentinela-acceptance.mjs"', 'sh', workspace, engine);
   } else throw new Error('Unknown independent validation profile.');
 }
 
