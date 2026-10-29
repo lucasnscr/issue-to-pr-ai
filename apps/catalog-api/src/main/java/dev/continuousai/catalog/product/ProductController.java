@@ -73,8 +73,10 @@ public class ProductController {
     @GetMapping("/categories")
     @Operation(summary = "List all categories present in the catalog, without duplicates, in ascending alphabetical order",
             description = "Returns an unpaginated array of normalized category names. An empty catalog returns an empty array.")
-    public List<String> categories() {
-        return service.listCategories();
+    public ResponseEntity<List<String>> categories() {
+        return ResponseEntity.ok()
+                .header("Cache-Control", "no-store")
+                .body(service.listCategories());
     }
 
     @GetMapping("/{id}")
