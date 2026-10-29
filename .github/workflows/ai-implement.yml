@@ -91,6 +91,7 @@ jobs:
       - name: Preserve independent scope and acceptance validators
         run: |
           cp scripts/validate-agent-changes.mjs "$RUNNER_TEMP/validate-agent-changes.mjs"
+          cp scripts/implementation-profiles.mjs "$RUNNER_TEMP/implementation-profiles.mjs"
           cp scripts/category-acceptance.mjs "$RUNNER_TEMP/category-acceptance.mjs"
           cp scripts/price-acceptance.mjs "$RUNNER_TEMP/price-acceptance.mjs"
           cp scripts/ordering-acceptance.mjs "$RUNNER_TEMP/ordering-acceptance.mjs"

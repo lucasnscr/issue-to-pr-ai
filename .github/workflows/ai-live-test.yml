@@ -50,6 +50,7 @@ jobs:
         run: |
           npm install --global opencode-ai@1.19.3
           cp scripts/validate-agent-changes.mjs "$RUNNER_TEMP/validate-agent-changes.mjs"
+          cp scripts/implementation-profiles.mjs "$RUNNER_TEMP/implementation-profiles.mjs"
           cp scripts/category-acceptance.mjs "$RUNNER_TEMP/category-acceptance.mjs"
       - id: started
         run: echo "epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
@@ -121,6 +122,7 @@ jobs:
           EXPECTED_SHA: ${{ needs.implement.outputs.base_sha }}
         run: |
           cp scripts/validate-agent-changes.mjs "$RUNNER_TEMP/validate-agent-changes.mjs"
+          cp scripts/implementation-profiles.mjs "$RUNNER_TEMP/implementation-profiles.mjs"
           mv downloaded "$RUNNER_TEMP/live-artifacts"
           git apply --check "$RUNNER_TEMP/live-artifacts/artifacts/implementation.patch"
           git apply --index "$RUNNER_TEMP/live-artifacts/artifacts/implementation.patch"

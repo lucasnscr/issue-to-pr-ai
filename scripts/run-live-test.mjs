@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { runGovernedOpenCode } from './run-governed-opencode.mjs';
 import { implementationProvider } from './model-provider.mjs';
 import { loadPolicy } from './ai-policy.mjs';
+import { implementationPrompt } from './implementation-profiles.mjs';
 
 const timeoutMs = 10 * 60 * 1000;
 
@@ -44,7 +45,7 @@ export async function runOpenCodeImplementation({ env = process.env } = {}) {
   loadPolicy('implementation', env.MODEL);
   const provider = implementationProvider(env);
   const result = await runGovernedOpenCode([
-    'run', implementationInstructions,
+    'run', env.IMPLEMENTATION_PROFILE ? implementationPrompt(env.IMPLEMENTATION_PROFILE) : implementationInstructions,
     '--model', env.MODEL, '--agent', 'live-implementer', '--format', 'json',
     '--file', env.TASK_FILE,
   ], { profile: 'implementation', model: env.MODEL, env: provider.env });
