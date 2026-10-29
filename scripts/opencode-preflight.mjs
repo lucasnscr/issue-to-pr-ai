@@ -6,6 +6,7 @@ import { parseOpenCodeUsage } from './ai-usage.mjs';
 
 const workspace = mkdtempSync(join(tmpdir(), 'opencode-fixture-'));
 const image = 'issue-to-pr-opencode:1.19.3';
+const container = 'opencode-fixture-' + process.pid + '-' + Date.now();
 const started = Date.now();
 try {
   const build = spawnSync('docker', ['build', '-t', image, new URL('../infra/agents', import.meta.url).pathname],
@@ -18,7 +19,7 @@ try {
     provider: { ollama: { npm: '@ai-sdk/openai-compatible', name: 'Ollama', options: {
       baseURL: 'http://host.docker.internal:11434/v1' }, models: { 'qwen3-coder:30b': {
       name: 'Qwen local', limit: { context: 64000, output: 4096 } } } } } };
-  const args = ['run', '--rm', '--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges',
+  const args = ['run', '--rm', '--name', container, '--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges',
     '--user', `${process.getuid?.() || 1000}:${process.getgid?.() || 1000}`,
     '--pids-limit=128', '--memory=2g', '--cpus=2', '--tmpfs', '/tmp:rw,exec,size=1g,mode=1777',
     '-v', `${workspace}:/workspace:rw`, '-e', `OPENCODE_CONFIG_CONTENT=${JSON.stringify(config)}`,
@@ -43,4 +44,7 @@ try {
   mkdirSync('artifacts', { recursive: true });
   writeFileSync('artifacts/opencode-preflight.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report));
-} finally { rmSync(workspace, { recursive: true, force: true }); }
+} finally {
+  spawnSync('docker', ['rm', '-f', container], { stdio: 'ignore', timeout: 10000 });
+  rmSync(workspace, { recursive: true, force: true });
+}
