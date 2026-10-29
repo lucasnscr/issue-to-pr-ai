@@ -42,6 +42,8 @@ async function executeJob({repo,run}){
   if(base.status==='Running')call('limactl',['stop',config.baseVm],{timeout:120000});
   call('limactl',['clone',config.baseVm,activeVm,'--mount-none','--cpus',String(config.cpus),'--memory',String(config.memoryGiB),'--start','--tty=false'],{timeout:300000});
   verifyVm(JSON.parse(call('limactl',['list',activeVm,'--json'])),activeVm);
+  guest('sh','-c','command -v gh >/dev/null 2>&1 || { sudo apt-get update -qq && sudo apt-get install -y gh; }');
+  guest('docker','info','--format','{{.ServerVersion}}');
   guest('node','-e',"require('fs').rmSync('/tmp/sentinela-runner-dist/.credentials',{force:true})");
   // Release bytes are verified on the host and guest before executing the runner.
   const archive=join(root,'.tools/runner/actions-runner-linux-arm64-'+config.runnerVersion+'.tar.gz');
