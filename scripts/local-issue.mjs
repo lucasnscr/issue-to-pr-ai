@@ -7,7 +7,7 @@ import { targetProfile, issueSnapshot, verifyVm } from './local-issue-policy.mjs
 import { validateChanges } from './validate-agent-changes.mjs';
 
 const options = Object.fromEntries(process.argv.slice(2).map(arg => {
-  const match = arg.match(/^--(repo|issue|vm|acceptance)=(.+)$/);
+  const match = arg.match(/^--(repo|issue|vm|acceptance|seed-pr)=(.+)$/);
   if (!match) throw new Error('Use --repo=OWNER/REPO --issue=N [--vm=sentinela-ai-pilot].');
   return [match[1], match[2]];
 }));
@@ -42,7 +42,18 @@ try {
   const base = api(`repos/${repo}/commits/${encodeURIComponent(branch)}`).sha;
   if (!/^[a-f0-9]{40}$/.test(base)) throw new Error('Invalid base SHA.');
   const task = join(temporary, 'task.md');
-  writeFileSync(task, `Repository: ${repo}\nIssue: #${issueNumber}\n<untrusted_issue>\n${initial.title}\n${initial.body}\n</untrusted_issue>\n`);
+  let seed = null;
+  if (options['seed-pr']) {
+    const seedNumber = Number(options['seed-pr']);
+    if (!Number.isSafeInteger(seedNumber) || seedNumber < 1) throw new Error('Invalid reviewed seed PR.');
+    seed = JSON.parse(gh('pr', 'view', String(seedNumber), '--repo', repo, '--json', 'number,state,baseRefOid,isCrossRepository,body'));
+    if (seed.state !== 'CLOSED' || seed.isCrossRepository || seed.baseRefOid !== base ||
+        !seed.body.includes('Closes #' + issueNumber + '\n')) throw new Error('Seed must be a closed same-repository PR for this issue and base.');
+    writeFileSync(join(temporary, 'seed.patch'), gh('pr', 'diff', String(seedNumber), '--repo', repo));
+  }
+  writeFileSync(task, `Repository: ${repo}\nIssue: #${issueNumber}\n` +
+    (seed ? `A reviewed implementation from PR #${seed.number} is already applied. Preserve its runtime logic and tests. Complete missing API/README documentation; avoid unrelated changes.\n` : '') +
+    `<untrusted_issue>\n${initial.title}\n${initial.body}\n</untrusted_issue>\n`);
   execute('git', ['archive', '--format=tar.gz', '--output=' + join(temporary, 'engine.tgz'), engineSha,
     'scripts', 'config', 'infra/agents', 'opencode.json', 'AGENTS.md'], root);
   guest('mkdir', '-p', remote + '/engine');
@@ -51,6 +62,13 @@ try {
   guest('tar', '-xzf', remote + '/engine.tgz', '-C', remote + '/engine');
   guest('git', 'clone', '--quiet', '--branch', branch, 'https://github.com/' + repo + '.git', remote + '/workspace');
   if (guest('git', '-C', remote + '/workspace', 'rev-parse', 'HEAD').trim() !== base) throw new Error('Base moved while cloning.');
+  if (seed) {
+    copy(join(temporary, 'seed.patch'), vm + ':' + remote + '/seed.patch');
+    guest('git', '-C', remote + '/workspace', 'apply', '--check', remote + '/seed.patch');
+    guest('git', '-C', remote + '/workspace', 'apply', remote + '/seed.patch');
+    guest('sh', '-c', 'cd "$1" && EXPECTED_SHA="$2" node "$3/scripts/validate-agent-changes.mjs"',
+      'sh', remote + '/workspace', base, remote + '/engine');
+  }
   // Read-only control files come from the trusted engine, not from the issue.
   const overlay = { $schema: 'https://opencode.ai/config.json', share: 'disabled', autoupdate: false, plugin: [], mcp: {},
     permission: { '*': 'deny', read: 'allow', glob: 'allow', grep: 'allow', edit: 'allow', external_directory: 'deny', bash: 'deny' },
@@ -114,7 +132,7 @@ try {
   writeFileSync(body, `Closes #${issueNumber}\n\nImplementado por Qwen local com OpenCode 1.19.3. Perfil: ${profile}. Base: ${base}.\n\nValidação independente em VM sem home compartilhado: escopo, regressão da aplicação e uso completo. ${usage.usage.steps} etapas; ${usage.usage.policyTokenUnits} unidades de tokens.\n\nPublicação fora do processo do modelo. PR draft; revisão e merge permanecem separados. Execução local: ${runId}.\n`);
   const pr = gh('pr', 'create', '--repo', repo, '--draft', '--base', branch, '--head', deliveryBranch,
     '--title', 'Implementa issue #' + issueNumber + ' com Qwen local', '--body-file', body).trim();
-  const report = { version: 1, result: 'passed', repo, issue: issueNumber, profile, base, engineSha, actor, runId, pr,
+  const report = { version: 1, result: 'passed', repo, issue: issueNumber, profile, base, engineSha, actor, runId, pr, seedPr: seed?.number,
     model: usage.model, usage: usage.usage, validation: 'Independent application regression in dedicated Lima VM',
     recordedAt: new Date().toISOString() };
   mkdirSync(join(root, 'artifacts'), { recursive: true });
