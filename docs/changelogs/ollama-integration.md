@@ -55,3 +55,5 @@ Teste conjunto SDLC também aprovado localmente contra as versões atuais dos do
 - Sentinela mantém a configuração can_approve_pull_request_reviews=false: publisher local com sessão gh existente, separado do modelo e após validação hospedada; recibo obrigatório de PR em job somente leitura.
 - Regressão: 208 testes de scripts, configuração/actionlint, make check e Maven/PostgreSQL. Clone Linux real com Node24 sem home montado, preflight Qwen real autenticado em contexto64k e remoção da VM verificados.
 - Execuções reais GitHub ainda pendentes; flags locais não foram habilitadas.
+
+Ajuste de isolamento antes dos pilotos GitHub: formatter e LSP automáticos ficam desabilitados no editor controlado (schema OpenCode1.19.3 conferido em container), mantendo somente leitura/edição antes do congelamento. Publisher local usa os eventos normais de PR; somente GITHUB_TOKEN exige dispatch explícito de CI, evitando duplicação no Sentinela.

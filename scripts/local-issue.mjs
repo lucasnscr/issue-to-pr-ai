@@ -74,7 +74,7 @@ try {
       'sh', remote + '/workspace', base, remote + '/engine', profile);
   }
   // Read-only control files come from the trusted engine, not from the issue.
-  const overlay = { $schema: 'https://opencode.ai/config.json', share: 'disabled', autoupdate: false, plugin: [], mcp: {},
+  const overlay = { $schema: 'https://opencode.ai/config.json', share: 'disabled', autoupdate: false, plugin: [], mcp: {}, formatter: false, lsp: false,
     permission: { '*': 'deny', read: 'allow', glob: 'allow', grep: 'allow', edit: 'allow', external_directory: 'deny', bash: 'deny' },
     instructions: ['/workspace/AGENTS.md'], agent: { 'live-implementer': { mode: 'primary', steps: 35, temperature: 0, permission: { bash: 'deny' } } } };
   writeFileSync(join(temporary, 'opencode.json'), JSON.stringify(overlay));

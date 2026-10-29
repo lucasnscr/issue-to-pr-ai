@@ -12,7 +12,7 @@ if(!/^[a-f0-9]{64}$/.test(key))throw Error('Authenticated local inference gatewa
 const provider=implementationProvider({MODEL:'ollama/qwen3-coder:30b',OLLAMA_API_KEY:key});
 const native=await preflight({apiKey:key});
 mkdirSync(output,{recursive:true});
-const config={...JSON.parse(provider.env.OPENCODE_CONFIG_CONTENT),$schema:'https://opencode.ai/config.json',plugin:[],mcp:{},
+const config={...JSON.parse(provider.env.OPENCODE_CONFIG_CONTENT),$schema:'https://opencode.ai/config.json',plugin:[],mcp:{},formatter:false,lsp:false,
   instructions:['/workspace/AGENTS.md'],permission:{'*':'deny',read:'allow',glob:'allow',grep:'allow',edit:'allow',bash:'deny',external_directory:'deny'},
   agent:{'live-implementer':{mode:'primary',steps:35,temperature:0,permission:{bash:'deny'}}}};
 writeFileSync(output+'/control.json',JSON.stringify(config));

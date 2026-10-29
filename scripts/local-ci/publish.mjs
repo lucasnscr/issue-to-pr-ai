@@ -29,6 +29,8 @@ if(previous.length){
   const title=issue.title.replace(/[\r\n\u0000-\u001f]/g,' ').slice(0,120);
   const url=gh('pr','create','--repo',task.repository,'--draft','--base',task.branch,'--head',branch,'--title',title,'--body-file',file).trim();
   if(env.GITHUB_STEP_SUMMARY)appendFileSync(env.GITHUB_STEP_SUMMARY,`PR draft: ${url}\n`);console.log(url);
-  gh('workflow','run','ci.yml','--repo',task.repository,'--ref',branch);
-  if(task.profile==='sentinela-typescript')gh('workflow','run','sdlc-integration.yml','--repo',task.repository,'--ref',branch);
+  if(env.GH_TOKEN){
+    gh('workflow','run','ci.yml','--repo',task.repository,'--ref',branch);
+    if(task.profile==='sentinela-typescript')gh('workflow','run','sdlc-integration.yml','--repo',task.repository,'--ref',branch);
+  }
 }
