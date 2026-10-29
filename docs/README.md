@@ -56,3 +56,8 @@ Uma CI verde comprova os checks daquele commit. Um doctor verde comprova somente
 de configuração inspecionados. Uma resposta de modelo é proposta sujeita a revisão.
 Consulte os relatórios para saber o que foi realmente executado e o que permanece pendente;
 não trate arquivos de GPU/vLLM/ARC ou a alternativa Cursor como implantação validada.
+
+## Implementação com modelo local
+
+- [Documento interativo do produto](product/index.html): fases, critérios e evidências. Sirva com `node scripts/serve-product-docs.mjs`.
+- [Changelog da integração Ollama](changelogs/ollama-integration.md).
