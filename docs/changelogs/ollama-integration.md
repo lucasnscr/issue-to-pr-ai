@@ -45,3 +45,13 @@ As PRs #78 e #79 concluíram CI e foram integradas à main; a combinação final
 Conclusão local: entrypoint do Sentinela invocou o engine imutável 42f4df9; o Qwen implementou #16 e abriu PR #18, com 10 etapas e 101.726 unidades de tokens. Check/unidade/40 integrações/build/E2E providers-operações passaram na VM e o patch permaneceu idêntico após testes. Critério independente de timeout: 18 verificações, vermelho na base anterior e verde no código Qwen. A revisão desta execução corrigiu somente a formatação da tabela Markdown; código e teste do piloto permaneceram gerados pelo Qwen.
 
 Teste conjunto SDLC também aprovado localmente contra as versões atuais dos dois repositórios; GitHub e agente desse teste são controlados. Isso é evidência distinta dos pilotos com inferência real. Infraestrutura Sentinela #17 integrada após CI conjunta; PR de aplicação #18 e engine #81 aguardam seus checks finais para merge. A documentação interativa ganhou receitas por projeto e cenários de falha, validados em DOM emulado.
+
+## Fase 5 — em validação
+
+- Workflow reutilizável separa autorização, modelo sem credencial de publicação, artefato congelado, validação hospedada e publisher. Caller/branch/engine imutável são conferidos antes do checkout.
+- Provider clona VM sem home, registra runner efêmero com label por run e remove VM/registro após a geração. Runner oficial 2.338.2 fixado por SHA-256.
+- Gateway de loopback autenticado e limitado a endpoints/modelo; callbacks de falha reconhecem o novo job sem aceitar nomes arbitrários.
+- O modo local impede duplicar /oc no executor legado e preserva seleção explícita @claude.
+- Sentinela mantém a configuração can_approve_pull_request_reviews=false: publisher local com sessão gh existente, separado do modelo e após validação hospedada; recibo obrigatório de PR em job somente leitura.
+- Regressão: 208 testes de scripts, configuração/actionlint, make check e Maven/PostgreSQL. Clone Linux real com Node24 sem home montado, preflight Qwen real autenticado em contexto64k e remoção da VM verificados.
+- Execuções reais GitHub ainda pendentes; flags locais não foram habilitadas.

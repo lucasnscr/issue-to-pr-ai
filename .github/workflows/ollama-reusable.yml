@@ -1,0 +1,219 @@
+name: reusable local implementation
+on:
+  workflow_call:
+    inputs:
+      engine_sha:
+        type: string
+        required: true
+      publish_mode:
+        type: string
+        default: github
+permissions:
+  contents: read
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      authorized: ${{ steps.task.outputs.authorized }}
+      base: ${{ steps.task.outputs.base }}
+      profile: ${{ steps.task.outputs.profile }}
+    env:
+      TASK_DIRECTORY: ${{ github.workspace }}/local-ci-data/task
+      PUBLISH_MODE: ${{ inputs.publish_mode }}
+    steps:
+      - name: Verify caller and immutable trusted engine before checkout
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        env:
+          ENGINE_SHA: ${{ inputs.engine_sha }}
+        with:
+          script: |
+            const repo = context.repo.owner + '/' + context.repo.repo;
+            if (!['lucasnscr/issue-to-pr-ai', 'lucasnscr/sentinela'].includes(repo) ||
+                context.ref !== 'refs/heads/' + context.payload.repository.default_branch ||
+                !/^[a-f0-9]{40}$/.test(process.env.ENGINE_SHA)) throw new Error('Trusted caller/default branch/SHA required.');
+            const source = {owner: 'lucasnscr', repo: 'issue-to-pr-ai'};
+            const {data: metadata} = await github.rest.repos.get(source);
+            const {data: comparison} = await github.rest.repos.compareCommitsWithBasehead({...source,
+              basehead: process.env.ENGINE_SHA + '...' + metadata.default_branch});
+            if (!['ahead', 'identical'].includes(comparison.status)) throw new Error('Engine is not in the reviewed default-branch history.');
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: lucasnscr/issue-to-pr-ai
+          ref: ${{ inputs.engine_sha }}
+          path: engine
+          persist-credentials: false
+      - id: task
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node engine/scripts/local-ci/authorize.mjs
+      - if: steps.task.outputs.authorized == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: local-task-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.TASK_DIRECTORY }}/
+          retention-days: 3
+  generate:
+    name: Model patch
+    needs: authorize
+    if: needs.authorize.outputs.authorized == 'true'
+    runs-on: [self-hosted, linux, ARM64, ollama-local, 'run-${{ github.run_id }}']
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      issues: read
+      actions: read
+    env:
+      TASK_DIRECTORY: ${{ github.workspace }}/local-ci-data/task
+      ENGINE_DIRECTORY: ${{ github.workspace }}/engine
+      CANDIDATE_DIRECTORY: ${{ github.workspace }}/candidate
+      FROZEN_DIRECTORY: ${{ github.workspace }}/local-ci-data/frozen
+      ENGINE_SHA: ${{ inputs.engine_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: lucasnscr/issue-to-pr-ai
+          ref: ${{ inputs.engine_sha }}
+          path: engine
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.authorize.outputs.base }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: local-task-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.TASK_DIRECTORY }}
+      - name: Re-authorize and prepare the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node engine/scripts/local-ci/authorize.mjs revalidate
+      - name: Make bundled Next.js guides available without install scripts
+        if: needs.authorize.outputs.profile == 'sentinela-typescript'
+        working-directory: candidate
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Generate without publication credentials
+        run: node engine/scripts/local-ci/generate.mjs
+      - name: Freeze model patch and usage before executing candidate code
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: local-frozen-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.FROZEN_DIRECTORY }}/candidate.patch
+            ${{ env.FROZEN_DIRECTORY }}/task.json
+            ${{ env.FROZEN_DIRECTORY }}/manifest.json
+            ${{ env.FROZEN_DIRECTORY }}/ai-usage.json
+            ${{ env.FROZEN_DIRECTORY }}/implementation-summary.md
+          retention-days: 7
+  validate:
+    needs: [authorize, generate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    env:
+      TASK_DIRECTORY: ${{ github.workspace }}/local-ci-data/task
+      ENGINE_DIRECTORY: ${{ github.workspace }}/engine
+      CANDIDATE_DIRECTORY: ${{ github.workspace }}/candidate
+      FROZEN_DIRECTORY: ${{ github.workspace }}/local-ci-data/frozen
+      VALIDATION_DIRECTORY: ${{ github.workspace }}/local-ci-data/validation
+      ENGINE_SHA: ${{ inputs.engine_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: lucasnscr/issue-to-pr-ai
+          ref: ${{ inputs.engine_sha }}
+          path: engine
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.authorize.outputs.base }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: local-frozen-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.FROZEN_DIRECTORY }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - if: needs.authorize.outputs.profile == 'catalog-java'
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: candidate/**/pom.xml
+      - run: node engine/scripts/local-ci/validate.mjs
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: local-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.VALIDATION_DIRECTORY }}/
+          retention-days: 7
+  publish:
+    needs: [authorize, validate]
+    if: inputs.publish_mode == 'github'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: write
+    env:
+      ENGINE_DIRECTORY: ${{ github.workspace }}/engine
+      CANDIDATE_DIRECTORY: ${{ github.workspace }}/candidate
+      FROZEN_DIRECTORY: ${{ github.workspace }}/local-ci-data/frozen
+      ENGINE_SHA: ${{ inputs.engine_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: lucasnscr/issue-to-pr-ai
+          ref: ${{ inputs.engine_sha }}
+          path: engine
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.authorize.outputs.base }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: local-frozen-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.FROZEN_DIRECTORY }}
+      - name: Revalidate and publish only the frozen candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node engine/scripts/local-ci/publish.mjs
+  local_receipt:
+    needs: [authorize, validate]
+    if: inputs.publish_mode == 'local'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    env:
+      FROZEN_DIRECTORY: ${{ github.workspace }}/local-ci-data/frozen
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: lucasnscr/issue-to-pr-ai
+          ref: ${{ inputs.engine_sha }}
+          path: engine
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: local-frozen-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.FROZEN_DIRECTORY }}
+      - name: Require a matching PR after independent validation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node engine/scripts/local-ci/wait-publication.mjs

@@ -25,7 +25,7 @@ export async function notifyLifecycle({env=process.env,api=githubApi,request=fet
     if(run.conclusion==='success'||run.event!=='issue_comment'||run.head_branch!==event.repository?.default_branch)return {skipped:true};
     const match=/^AI implementation • issue #([1-9][0-9]*)$/.exec(run.display_title||'');if(!match)return {skipped:true};
     const jobs=await api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`);
-    if(!jobs.jobs?.some(job=>job.name==='implement'&&job.steps?.some(step=>step.name==='Re-authorize and prepare the issue'&&step.conclusion==='success')))return {skipped:true};
+    if(!jobs.jobs?.some(job=>['implement','implementation / Model patch'].includes(job.name)&&job.steps?.some(step=>step.name==='Re-authorize and prepare the issue'&&step.conclusion==='success')))return {skipped:true};
     const issue=await api(`repos/${repo}/issues/${match[1]}`);if(issue.pull_request)return {skipped:true};
     return send(run.conclusion==='cancelled'?'implementation.cancelled':'implementation.failed',issue,null,run.head_sha,identity,run);
   }

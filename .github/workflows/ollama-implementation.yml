@@ -1,0 +1,27 @@
+name: AI implementation
+run-name: 'AI implementation • issue #${{ github.event.issue.number || inputs.issue }}'
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Authorized open issue number
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: local-ai-${{ github.event.issue.number || inputs.issue }}
+  cancel-in-progress: false
+jobs:
+  implementation:
+    if: vars.AI_ENABLED == 'true' && vars.LOCAL_AI_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event.comment.user.type == 'User')
+    uses: ./.github/workflows/ollama-reusable.yml
+    with:
+      engine_sha: ${{ github.sha }}
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      actions: write
