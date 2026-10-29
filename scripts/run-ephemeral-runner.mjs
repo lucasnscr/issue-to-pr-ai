@@ -6,6 +6,7 @@ import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {validateRunnerConfig,queuedModelJob} from './local-runner-policy.mjs';
 import {targetProfile,verifyVm} from './local-issue-policy.mjs';
 import {publishValidatedLocal} from './local-ci/local-publisher.mjs';
+import {discardRunner} from './runner-cleanup.mjs';
 const root=new URL('../',import.meta.url).pathname;
 const config=validateRunnerConfig(JSON.parse(readFileSync(join(root,'config/local-runner.json'),'utf8')));
 if(process.argv.slice(2).some(arg=>arg!=='--watch'&&!/^--(repos|max-jobs)=.+$/.test(arg)))throw Error('Unknown runner option.');
@@ -18,7 +19,7 @@ const call=(cmd,args,options={})=>execFileSync(cmd,args,{encoding:'utf8',timeout
 const api=(path,method)=>JSON.parse(call('gh',['api',path,...(method?['--method',method]:[])]));
 const lock=join(tmpdir(),'sentinela-ai-runner-pool.lock');
 mkdirSync(lock);writeFileSync(join(lock,'owner'),String(process.pid));
-let stopping=false,activeVm=null,activeRepo=null,activeRunnerId=null,listener=null;
+let stopping=false,activeVm=null,activeRepo=null,activeRunId=null,activeRunnerId=null,listener=null;
 process.on('SIGTERM',()=>{stopping=true;listener?.kill('SIGTERM');});
 process.on('SIGINT',()=>{stopping=true;listener?.kill('SIGTERM');});
 const guest=(...args)=>call('limactl',['shell',activeVm,'--',...args],{timeout:300000});
@@ -36,7 +37,7 @@ async function candidate(){
   return null;
 }
 async function executeJob({repo,run}){
-  const suffix=randomUUID().slice(0,8);activeVm='sentinela-ai-job-'+suffix;activeRepo=repo;
+  const suffix=randomUUID().slice(0,8);activeVm='sentinela-ai-job-'+suffix;activeRepo=repo;activeRunId=run.id;
   const base=JSON.parse(call('limactl',['list',config.baseVm,'--json']));
   if(!base.config||base.config.mounts?.length||base.config.ssh?.forwardAgent)throw Error('Base VM shares host data or lacks resolved configuration.');
   if(base.status==='Running')call('limactl',['stop',config.baseVm],{timeout:120000});
@@ -75,19 +76,15 @@ async function executeJob({repo,run}){
   console.log(`Ephemeral model job completed for ${repo}, run ${run.id}. Validation/publication use separate hosted jobs.`);
 }
 async function cleanup(){
-  if(activeRepo&&activeVm){
-    const registrations=api(`repos/${activeRepo}/actions/runners?per_page=100`).runners.filter(r=>r.name===activeVm);
-    for(const runner of registrations){call('gh',['api',`repos/${activeRepo}/actions/runners/${runner.id}`,'--method','DELETE']);}
-    if(api(`repos/${activeRepo}/actions/runners?per_page=100`).runners.some(r=>r.name===activeVm))throw Error('Runner registration cleanup failed.');
-  }
   if(activeVm){
-    let exists=false;try{exists=Boolean(JSON.parse(call('limactl',['list',activeVm,'--json'])).name);}catch{}
-    if(exists){call('limactl',['delete','--force',activeVm,'--tty=false'],{timeout:120000});}
-    const remaining=call('limactl',['list','--json']).trim().split('\n').filter(Boolean).map(line=>JSON.parse(line));
-    if(remaining.some(vm=>vm.name===activeVm))throw Error('Ephemeral VM cleanup failed; operator attention required.');
-    record({type:'destroyed',repo:activeRepo,vm:activeVm,registrationRemoved:true,vmRemoved:true});
+    await discardRunner({vm:activeVm,repo:activeRepo,runId:activeRunId,
+      listVms:()=>call('limactl',['list','--json']).trim().split('\n').filter(Boolean).map(line=>JSON.parse(line)),
+      deleteVm:vm=>call('limactl',['delete','--force',vm,'--tty=false'],{timeout:120000}),
+      listRunners:repo=>api(`repos/${repo}/actions/runners?per_page=100`).runners,
+      deleteRunner:(repo,id)=>call('gh',['api',`repos/${repo}/actions/runners/${id}`,'--method','DELETE']),
+      cancelRun:(repo,id)=>call('gh',['api',`repos/${repo}/actions/runs/${id}/force-cancel`,'--method','POST']),record});
   }
-  activeVm=null;activeRepo=null;activeRunnerId=null;listener=null;
+  activeVm=null;activeRepo=null;activeRunId=null;activeRunnerId=null;listener=null;
 }
 try{
   let count=0;
