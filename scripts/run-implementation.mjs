@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { evaluateUsage, loadPolicy } from './ai-policy.mjs';
 import { implementationInstructions, runOpenCodeImplementation } from './run-live-test.mjs';
+import { implementationPrompt } from './implementation-profiles.mjs';
 
 const nonnegative = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
 const count = value => nonnegative(value) && Number.isSafeInteger(value);
@@ -39,15 +40,21 @@ export function parseClaudeResult(result, secrets = []) {
   return { summary, usage, failure };
 }
 
-export function claudeArguments({ taskFile, model, profile, rules }) {
+export function claudeArguments({ taskFile, model, profile, rules, implementationProfileName, taskContent }) {
   if (!model.startsWith('anthropic/')) throw new Error('Claude Code requires an allowed Anthropic model.');
+  const controlled=Boolean(implementationProfileName);
+  const prompt=controlled?implementationPrompt(implementationProfileName)+'\n<untrusted_task>\n'+taskContent+'\n</untrusted_task>':
+    `${implementationInstructions} Read the acceptance criteria from this task file: ${JSON.stringify(taskFile)}.`;
   return [
-    '--bare', '-p', `${implementationInstructions} Read the acceptance criteria from this task file: ${JSON.stringify(taskFile)}.`,
+    '--bare', '-p', prompt,
     '--append-system-prompt', `${rules}\n\nDelivery exception for this invocation: do not commit, push, open, approve, or merge PRs. The workflow publishes only after independent validation.`,
     '--output-format', 'json', '--max-turns', String(profile.maxSteps),
     '--max-budget-usd', String(profile.maxEstimatedCostUsd), '--model', model.slice('anthropic/'.length),
-    '--tools', 'Read,Edit,Write,Glob,Grep,Bash',
-    '--allowedTools', 'Read,Edit,Write,Glob,Grep,Bash(./mvnw:*),Bash(git status:*),Bash(git diff:*)',
+    '--tools', controlled?'Read,Edit,Write,Glob,Grep':'Read,Edit,Write,Glob,Grep,Bash',
+    '--allowedTools', controlled?'Read(//workspace/**),Edit(//workspace/**),Glob,Grep':'Read,Edit,Write,Glob,Grep,Bash(./mvnw:*),Bash(git status:*),Bash(git diff:*)',
+    ...(controlled?['--setting-sources','', '--settings',JSON.stringify({permissions:{blockReadsOutsideWorkingDirectories:true,
+      deny:['Bash','Agent','WebFetch','WebSearch','Read(//proc/**)','Read(//sys/**)','Read(//artifacts/**)','Read(//engine/**)',
+        'Edit(//workspace/.git/**)','Edit(//workspace/node_modules/**)','Read(//workspace/**/.env)','Read(//workspace/**/.env.local)']}})]:[]),
     '--permission-prompts', 'none', '--no-session-persistence',
   ];
 }
@@ -92,8 +99,10 @@ export async function runClaudeImplementation({ env = process.env, command = 'cl
     throw new Error('MODEL, TASK_FILE, and ANTHROPIC_API_KEY are required for Claude Code.');
   }
   const profile = loadPolicy('implementation', env.MODEL);
-  const rules = readFileSync(new URL('../AGENTS.md', import.meta.url), 'utf8');
-  const args = claudeArguments({ taskFile: env.TASK_FILE, model: env.MODEL, profile, rules });
+  const rules = readFileSync(env.AI_RULES_FILE||new URL('../AGENTS.md', import.meta.url), 'utf8');
+  const args = claudeArguments({ taskFile: env.TASK_FILE, model: env.MODEL, profile, rules,
+    implementationProfileName:env.IMPLEMENTATION_PROFILE,taskContent:env.IMPLEMENTATION_PROFILE?readFileSync(env.TASK_FILE,'utf8'):undefined });
+  usageFile=env.AI_USAGE_FILE||usageFile;summaryFile=env.AI_SUMMARY_FILE||summaryFile;
   const startedAt = Date.now();
   const result = await run(args, { profile, env, command });
   const parsed = parseClaudeResult(result, [env.ANTHROPIC_API_KEY, env.VLLM_API_KEY]);

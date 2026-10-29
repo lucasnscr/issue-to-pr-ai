@@ -56,7 +56,7 @@ o custo faturado pelo provedor. `providerBilledCostUsd` permanece `null` até ha
 uma integração de faturamento. Um resultado zero em um endpoint privado não
 significa que GPU, infraestrutura ou operação são gratuitos.
 
-Para Claude Code, o CLI é fixado em `2.1.306` pelo workflow e executa em modo
+No caminho Java existente com Claude Code, o CLI é fixado em `2.1.306` pelo workflow e executa em modo
 `--bare`: regras confiáveis são fornecidas explicitamente, sem descoberta de
 hooks, plugins ou `CLAUDE.md`. A lista de ferramentas fica restrita, e os comandos
 Bash liberados são Maven e leitura de status/diff do Git. O modelo não recebe um
@@ -65,6 +65,13 @@ token GitHub de escrita nem realiza publicação. `--max-turns` e
 limitados pelo supervisor. O JSON final fornece `total_cost_usd`, `usage` e
 `num_turns`; o wrapper normaliza esses campos, bloqueia falhas e ausências de uso
 ou resumo e valida os limites novamente antes de permitir publicação.
+
+No [perfil controlado do Sentinela](runbooks/sentinela-claude.md), o Claude usa
+um container separado e somente ferramentas de leitura/edição de arquivos, sem
+shell. O perfil TypeScript fornece as regras do alvo e as configurações da sessão
+são explícitas, conforme a [referência de permissões do Claude](https://code.claude.com/docs/en/permissions).
+Geração, validação independente e publicação são jobs/processos distintos;
+`/oc` e `@claude` têm seletores separados, sem fallback silencioso.
 
 O custo do Claude também é uma estimativa do cliente, com base
 `claude-code-client-estimate`, nunca uma fatura. O formato e o modo bare estão

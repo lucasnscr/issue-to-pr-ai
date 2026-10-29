@@ -3,7 +3,7 @@ import {readFileSync,writeFileSync,mkdirSync,rmSync,existsSync,appendFileSync} f
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomUUID,randomBytes,createHash} from 'node:crypto';
-import {validateRunnerConfig,queuedModelJob} from './local-runner-policy.mjs';
+import {validateRunnerConfig,queuedModelJob,queuedCloudPublication} from './local-runner-policy.mjs';
 import {targetProfile,verifyVm} from './local-issue-policy.mjs';
 import {publishValidatedLocal} from './local-ci/local-publisher.mjs';
 import {discardRunner} from './runner-cleanup.mjs';
@@ -20,18 +20,23 @@ const api=(path,method)=>JSON.parse(call('gh',['api',path,...(method?['--method'
 const lock=join(tmpdir(),'sentinela-ai-runner-pool.lock');
 mkdirSync(lock);writeFileSync(join(lock,'owner'),String(process.pid));
 let stopping=false,activeVm=null,activeRepo=null,activeRunId=null,activeRunnerId=null,listener=null;
-process.on('SIGTERM',()=>{stopping=true;listener?.kill('SIGTERM');});
-process.on('SIGINT',()=>{stopping=true;listener?.kill('SIGTERM');});
+const publicationAbort=new AbortController();
+process.on('SIGTERM',()=>{stopping=true;publicationAbort.abort();listener?.kill('SIGTERM');});
+process.on('SIGINT',()=>{stopping=true;publicationAbort.abort();listener?.kill('SIGTERM');});
 const guest=(...args)=>call('limactl',['shell',activeVm,'--',...args],{timeout:300000});
 const copy=(from,to)=>call('limactl',['copy',from,activeVm+':'+to]);
 function record(value){mkdirSync(join(root,'artifacts'),{recursive:true});appendFileSync(join(root,'artifacts/ephemeral-runners.jsonl'),JSON.stringify({...value,at:new Date().toISOString()})+'\n');}
 async function candidate(){
   for(const repo of repos){
     const branch=api('repos/'+repo).default_branch;
-    const runs=api(`repos/${repo}/actions/workflows/ollama-implementation.yml/runs?per_page=10`).workflow_runs||[];
-    for(const run of runs.filter(item=>['queued','in_progress'].includes(item.status)).sort((a,b)=>a.id-b.id)){
-      const jobs=api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs||[];
-      if(queuedModelJob(repo,run,jobs,branch))return {repo,run};
+    const workflows=api(`repos/${repo}/actions/workflows?per_page=100`).workflows||[];
+    for(const workflow of workflows.filter(item=>['.github/workflows/ollama-implementation.yml','.github/workflows/claude-implementation.yml'].includes(item.path))){
+      const runs=api(`repos/${repo}/actions/workflows/${workflow.id}/runs?per_page=10`).workflow_runs||[];
+      for(const run of runs.filter(item=>['queued','in_progress'].includes(item.status)).sort((a,b)=>a.id-b.id)){
+        const jobs=api(`repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`).jobs||[];
+        if(queuedModelJob(repo,run,jobs,branch))return {repo,run};
+        if(queuedCloudPublication(repo,run,jobs,branch))return {repo,run,agent:'claude'};
+      }
     }
   }
   return null;
@@ -91,7 +96,8 @@ try{
   while(!stopping&&count<max){
     let job;try{job=await candidate();}catch(error){if(!watch)throw error;}
     if(!job){if(!watch)throw Error('No authorized model job is queued.');await new Promise(resolve=>setTimeout(resolve,15000));continue;}
+    if(job.agent==='claude'){await publishValidatedLocal(job.repo,job.run.id,{signal:publicationAbort.signal});count++;continue;}
     try{await executeJob(job);count++;}finally{await cleanup();}
-    if(job.repo==='lucasnscr/sentinela')await publishValidatedLocal(job.repo,job.run.id);
+    if(job.repo==='lucasnscr/sentinela')await publishValidatedLocal(job.repo,job.run.id,{signal:publicationAbort.signal});
   }
 }finally{try{await cleanup();}finally{rmSync(lock,{recursive:true,force:true});}}
