@@ -10,6 +10,6 @@ export function targetProfile(repo) {
   return targets[repo];
 }
 export function verifyVm(vm, name) {
-  if (!/^sentinela-ai-[a-z0-9-]+$/.test(name) || vm.name !== name || vm.status !== 'Running' ||
+  if (!/^sentinela-ai-[a-z0-9-]+$/.test(name) || !vm.config || vm.name !== name || vm.status !== 'Running' ||
       vm.config?.mounts?.length || vm.config?.ssh?.forwardAgent) throw new Error('A dedicated running Lima VM without shared mounts or SSH agent is required.');
 }

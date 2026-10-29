@@ -23,3 +23,14 @@ Execute a documentação com `node scripts/serve-product-docs.mjs` e abra http:/
 - Revisão: tag não admite comandos ou múltiplos dois-pontos; configuração referencia a variável de credencial. Sem fallback para nuvem.
 - Infraestrutura preparada para o piloto: Lima 2.2.1, VM Linux com mounts vazios, Docker 29.9.2, Java 21 e Node 24.21.0. Não é runner GitHub habilitado.
 - Documento interativo: busca, filtro de estado e ausência de resultados validados com DOM emulado. Revisão visual continua indisponível no navegador local.
+
+## Fase 3 — validada localmente em 29/10/2026
+
+- Controlador local separado do modelo; VM sem mounts do host; código de engine vinculado a commit; perfil Java e permissões de edição sem comandos.
+- Publicação só após escopo, uso, regressão PostgreSQL e aceitação HTTP independentes. Revalida issue/base/autorização; limpa recursos do job.
+- 204 testes de scripts e regressão Maven do engine aprovados. Piloto de código em execução.
+- Primeira tentativa não publicou. Inclusão explícita do README da aplicação no perfil foi revisada e testada. A tentativa seguinte passou em Maven/HTTP e abriu PR #77, mas a revisão encontrou documentação incompleta e a PR foi fechada. Outra tentativa foi bloqueada pela compilação (import UUID ausente), sem publicação. Feedback registrado nos critérios e nova execução em temperatura zero. Nenhuma edição de código do piloto foi feita por outro modelo.
+
+Conclusão do piloto: PR #78 gerada pelo Qwen após retomada explícita da PR #77 revisada. A retomada final usou 10 etapas e 79.906 unidades de tokens. Maven/PostgreSQL, smoke, categorias, preço, ordenação e no-store independente passaram. Diff revisado: cabeçalho, teste IT, descrição OpenAPI e README presentes; sem edição de código da aplicação por outro modelo. Uma retomada intermediária falhou no escopo e não publicou. Duas tentativas de implementação do zero falharam na compilação (UUID e CacheControl), sem publicação. Os testes mostraram que inferência concluída não implica código correto; o aceite depende da validação e da revisão.
+
+As PRs da fase ainda precisam concluir seus checks de CI antes da integração. A VM de laboratório permanece dedicada e será tratada separadamente da validação do runner descartável.

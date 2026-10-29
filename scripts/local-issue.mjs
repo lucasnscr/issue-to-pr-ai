@@ -13,6 +13,7 @@ const options = Object.fromEntries(process.argv.slice(2).map(arg => {
 }));
 const repo = options.repo, issueNumber = Number(options.issue), vm = options.vm || 'sentinela-ai-pilot';
 const profile = targetProfile(repo);
+if (!/^sentinela-ai-[a-z0-9-]+$/.test(vm)) throw new Error('Invalid dedicated VM name.');
 if (options.acceptance && options.acceptance !== 'catalog-categories-no-store') throw new Error('Unknown independent acceptance profile.');
 if (!Number.isSafeInteger(issueNumber) || issueNumber < 1) throw new Error('Invalid issue number.');
 const runId = randomUUID(), remote = '/tmp/sentinela-job-' + runId;

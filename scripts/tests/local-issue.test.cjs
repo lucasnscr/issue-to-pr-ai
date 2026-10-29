@@ -8,6 +8,7 @@ test('local delivery requires an open issue with explicit authorization and stab
   const vm={name:'sentinela-ai-pilot',status:'Running',config:{mounts:[]}};verifyVm(vm,vm.name);
   assert.throws(()=>verifyVm({...vm,config:{mounts:[{location:'~'}]}},vm.name));
   assert.throws(()=>verifyVm({...vm,config:{ssh:{forwardAgent:true}}},vm.name));
+  assert.throws(()=>verifyVm({...vm,config:undefined},vm.name));
 });
 test('profile selection is bounded and cannot supply arbitrary commands or write configuration',async()=>{
   const {implementationProfile,implementationPrompt}=await import('../implementation-profiles.mjs');
