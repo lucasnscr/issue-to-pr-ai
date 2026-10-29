@@ -24,4 +24,8 @@ test('interrupção de implementação exige gate autorizado na branch padrão',
  const request=async(url,options)=>{calls++;const message=JSON.parse(options.body);assert.equal(message.type,'implementation.failed');assert.equal(message.pullRequestNumber,null);return new Response('{}',{status:202});};
  await notifyLifecycle({env,event,api:metadata,request});assert.equal(calls,0);authorized=true;await notifyLifecycle({env,event,api:metadata,request});assert.equal(calls,1);
  event.workflow_run.head_branch='candidate';await notifyLifecycle({env,event,api:metadata,request});assert.equal(calls,1);
+ event.workflow_run.head_branch='main';
+ const reusable=async path=>path.includes('/jobs')?{jobs:[{name:'implementation / Model patch',steps:[{name:'Re-authorize and prepare the issue',conclusion:'success'}]}]}:issue;
+ await notifyLifecycle({env,event,api:reusable,request});assert.equal(calls,2);
+ await notifyLifecycle({env,event,api:async path=>path.includes('/jobs')?{jobs:[{name:'untrusted / Model patch',steps:[{name:'Re-authorize and prepare the issue',conclusion:'success'}]}]}:issue,request});assert.equal(calls,2);
 });

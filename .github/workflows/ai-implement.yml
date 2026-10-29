@@ -33,7 +33,7 @@ jobs:
   implement:
     needs: authorize
     if: >-
-      needs.authorize.outputs.agent == 'opencode' ||
+      (needs.authorize.outputs.agent == 'opencode' && vars.LOCAL_AI_ENABLED != 'true') ||
       (needs.authorize.outputs.agent == 'claude' && vars.CLAUDE_ENABLED == 'true')
     runs-on: ${{ fromJSON(vars.AI_RUNNER || '["ubuntu-latest"]') }}
     timeout-minutes: 25

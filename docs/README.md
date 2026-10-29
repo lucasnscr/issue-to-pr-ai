@@ -64,3 +64,5 @@ não trate arquivos de GPU/vLLM/ARC ou a alternativa Cursor como implantação v
 
 - [Inferência local e limites](runbooks/local-inference.md).
 - [Entrega de issue em VM dedicada](runbooks/local-issue-delivery.md).
+
+- [Runner GitHub descartável e publicação separada](runbooks/github-local-runner.md).

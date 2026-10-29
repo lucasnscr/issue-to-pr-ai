@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "baseVm": "sentinela-ai-pilot",
+  "runnerVersion": "2.338.2",
+  "runnerAsset": "https://github.com/actions/runner/releases/download/v2.338.2/actions-runner-linux-arm64-2.338.2.tar.gz",
+  "runnerSha256": "670adb2f268fe21dcbb58b3db0e0aa9d5b3bddfe2c651481336e561ff86de945",
+  "memoryGiB": 4,
+  "cpus": 2
+}
