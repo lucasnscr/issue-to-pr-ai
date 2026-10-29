@@ -105,11 +105,14 @@ try {
   guest('sh', '-c', 'cd "$1" && EXPECTED_SHA="$2" IMPLEMENTATION_PROFILE="$3" node "$4/scripts/validate-agent-changes.mjs"',
     'sh', remote + '/workspace', base, profile, remote + '/engine');
   console.log('Patch scope passed; running independent application regression in the dedicated VM.');
+  guest('sh', '-c', 'cd "$1" && git diff --cached --binary > "$2/candidate.patch"', 'sh', remote + '/workspace', remote);
   stage = 'regression';
   validateVmApplication({ guest, profile, workspace: remote + '/workspace', remote, engine: remote + '/engine', project: 'ai-' + runId });
   stage = 'http-acceptance';
   if (options.acceptance) guest('node', '-e', 'fetch("http://127.0.0.1:8080/api/products/categories").then(r=>{if(!r.ok||!r.headers.get("cache-control")?.includes("no-store"))throw Error("Independent no-store acceptance failed");return r.json()}).then(x=>{if(!Array.isArray(x))throw Error("Categories contract changed")})');
-  guest('sh', '-c', 'cd "$1" && git diff --cached --binary > "$2/implementation.patch"', 'sh', remote + '/workspace', remote);
+  stage = 'post-regression-scope';
+  guest('sh', '-c', 'cd "$1" && EXPECTED_SHA="$2" IMPLEMENTATION_PROFILE="$3" node "$4/scripts/validate-agent-changes.mjs" && git diff --cached --binary > "$5/implementation.patch" && cmp "$5/candidate.patch" "$5/implementation.patch"',
+    'sh', remote + '/workspace', base, profile, remote + '/engine', remote);
   copy(vm + ':' + remote + '/implementation.patch', join(temporary, 'implementation.patch'));
   copy(vm + ':' + remote + '/artifacts/ai-usage.json', join(temporary, 'ai-usage.json'));
   const usage = JSON.parse(readFileSync(join(temporary, 'ai-usage.json'), 'utf8'));
@@ -159,7 +162,7 @@ try {
     mkdirSync(join(root, 'artifacts'), { recursive: true });
     copy(vm + ':' + remote + '/validation.log', join(root, 'artifacts/local-issue-' + issueNumber + '-validation.log'));
   } catch {}
-  for (const [from, name] of [['artifacts/ai-usage.json', 'failed-usage.json'], ['http.log', 'http.log']]) {
+  for (const [from, name] of [['artifacts/ai-usage.json', 'failed-usage.json'], ['candidate.patch', 'failed.patch'], ['http.log', 'http.log']]) {
     try { copy(vm + ':' + remote + '/' + from, join(root, 'artifacts/local-issue-' + issueNumber + '-' + name)); } catch {}
   }
   console.error('Local delivery failed at ' + stage + ': ' + (reason || (error.status ? 'bounded subprocess exited ' + error.status : error.message)));
