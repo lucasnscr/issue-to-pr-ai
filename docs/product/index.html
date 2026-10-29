@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entrega com IA local e recuperação verificada</title><link rel="stylesheet" href="product.css">
+<script src="phases.js" defer></script><script src="product.js" defer></script></head>
+<body><header><p class="eyebrow">issue-to-pr-ai + Sentinela</p><h1>Da issue à recuperação verificada</h1>
+<p>Documentação incremental do produto. Explore cada fase, seus critérios e as evidências disponíveis.</p>
+<p class="notice">Um teste sintético de protocolo não comprova entrega de código ou qualidade de um modelo. Cada evidência declara seu alcance.</p></header>
+<main><section aria-label="Fluxo do produto"><div class="flow">Issue autorizada <span>→</span> OpenCode + modelo local <span>→</span> testes independentes <span>→</span> PR draft <span>→</span> deploy <span>→</span> Sentinela</div></section>
+<section class="controls"><label>Buscar na documentação <input id="search" type="search" placeholder="Ex.: contexto, TypeScript, rollback"></label>
+<label>Estado <select id="status"><option value="all">Todas as fases</option><option value="planned">Planejadas</option><option value="validating">Em validação</option><option value="passed">Validadas</option><option value="blocked">Bloqueadas</option></select></label></section>
+<p id="count" role="status" aria-live="polite"></p><div id="phases"></div>
+<section class="boundary"><h2>Limites e responsabilidades</h2><p>O agente escreve código em ambiente dedicado. A validação e a publicação acontecem fora dele. Modelo, runtime e infraestrutura são escolhas independentes.</p>
+<p>Implementar uma issue do Sentinela e monitorar o próprio Sentinela são operações diferentes. Autorreparo exige monitor externo.</p></section></main>
+<footer><a href="https://github.com/lucasnscr/issue-to-pr-ai">issue-to-pr-ai</a> · <a href="https://github.com/lucasnscr/sentinela">Sentinela</a> · <a href="../changelogs/ollama-integration.md">Changelog</a></footer></body></html>
