@@ -87,6 +87,15 @@ class ProductCategoriesIT {
         assertThat(http.getForObject("/api/products/categories", String[].class)).containsExactly("books");
     }
 
+    @Test
+    void includesNoStoreCacheControlHeader() {
+        ResponseEntity<String[]> response = http.getForEntity("/api/products/categories", String[].class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getFirst("Cache-Control")).isEqualTo("no-store");
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(response.getBody()).isEmpty();
+    }
+
     /**
      * Regression test for the P2 finding: when categories are stored with inconsistent
      * casing or surrounding spaces (e.g. via direct DB insertion, Flyway seed data, or
